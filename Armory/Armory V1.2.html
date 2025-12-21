@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Armory v1.2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --module-bg: #1a1a1d;
+            --gold: #d4af37;
+            --gold-dim: #6b5825;
+            --cyan: #00d2ff;
+            --text: #bbb;
+            --border: #333;
+        }
+
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            margin: 0; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            user-select: none; overflow: hidden;
+        }
+
+        .console-container {
+            display: flex; gap: 12px;
+            background: #0e0e0e; padding: 15px;
+            border: 3px solid #333; border-radius: 8px;
+            box-shadow: 0 50px 150px rgba(0,0,0,1);
+            height: 780px;
+        }
+
+        /* --- Channel Strip --- */
+        .channel-strip {
+            width: 280px;
+            background: var(--module-bg);
+            border: 1px solid #333; border-top: 5px solid #444;
+            display: flex; flex-direction: column;
+            position: relative; transition: border-color 0.3s;
+        }
+        .channel-strip.active {
+            border-top-color: var(--gold);
+            background: linear-gradient(180deg, #252528 0%, #1a1a1d 100%);
+            box-shadow: 0 0 20px rgba(0,0,0,0.4);
+        }
+        .channel-strip.inactive {
+            opacity: 0.6; filter: grayscale(1) brightness(0.8);
+        }
+        .channel-strip.inactive .power-btn {
+            box-shadow: 0 0 5px rgba(255,255,255,0.3); border-color: #888;
+        }
+
+        /* Header */
+        .ch-header {
+            padding: 10px; background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid #333;
+            display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-right { display: flex; gap: 8px; }
+        .ch-title { font-weight: 800; font-size: 14px; color: #777; letter-spacing: 1px; }
+        .channel-strip.active .ch-title { color: var(--gold); }
+        .power-btn {
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #444; border: 2px solid #666; cursor: pointer; pointer-events: auto;
+            transition: all 0.3s;
+        }
+        .channel-strip.active .power-btn {
+            background: var(--gold); box-shadow: 0 0 8px var(--gold); border-color: #fff;
+        }
+        .icon-btn {
+            background: transparent; border: none; color: #666; font-size: 14px;
+            cursor: pointer; transition: 0.2s; padding: 0; pointer-events: auto;
+        }
+        .icon-btn:hover { color: var(--gold); transform: scale(1.1); }
+
+        /* Preset */
+        .preset-wrapper { position: relative; width: 100%; }
+        .preset-btn {
+            width: 100%; background: #111; border: 1px solid #333; color: var(--gold);
+            font-size: 11px; padding: 4px; cursor: pointer; text-align: center; font-weight: bold; border-radius: 2px;
+        }
+        .preset-list {
+            position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px;
+            overflow-y: auto; background: #1a1a1a; border: 1px solid var(--gold);
+            z-index: 100; display: none;
+        }
+        .preset-list.show { display: block; }
+        .p-item { padding: 6px; font-size: 11px; border-bottom: 1px solid #222; cursor: pointer; }
+        .p-item:hover { background: var(--gold); color: #000; }
+
+        /* Body */
+        .ch-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .half-module {
+            flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .half-module:last-child { border-bottom: none; background: rgba(0,0,0,0.15); }
+        .module-label {
+            font-size: 10px; color: #555; font-weight: bold; letter-spacing: 2px; 
+            text-align: center; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px;
+        }
+
+        /* Controls */
+        .viz-wrapper { background: #000; border: 1px solid #333; border-radius: 4px; padding: 2px; margin-bottom: 5px; }
+        canvas.mini-viz { width: 100%; height: 40px; display: block; }
+        .shape-time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px; }
+        .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .ctrl-row { margin-bottom: 6px; position: relative; }
+        .ctrl-header { display: flex; justify-content: space-between; font-size: 9px; color: #888; margin-bottom: 1px; }
+        .val-text { color: var(--gold); font-family: monospace; font-weight: bold; cursor: text; min-width: 30px; text-align: right; }
+        .val-text:hover { color: #fff; text-decoration: underline; }
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; height: 10px; cursor: pointer; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 3px; background: #111; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 10px; width: 10px; background: #999; margin-top: -3.5px; border-radius: 50%; border: 1px solid #000; }
+        input[type="range"]:hover::-webkit-slider-thumb { background: var(--gold); }
+        .ctrl-row.locked { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+        .ctrl-row.locked::after { content: '🔒'; position: absolute; right: 0; top: 0; font-size: 10px; }
+        .param-input { width: 40px; background: #000; color: var(--gold); border: 1px solid var(--gold); font-size: 10px; font-family: monospace; text-align: center; outline: none; position: absolute; right: 0; top: -2px; z-index: 10; }
+
+        /* Mixer */
+        .mixer-groups { display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
+        .knob-group { border: 1px solid #333; background: rgba(255,255,255,0.02); border-radius: 4px; padding: 5px; position: relative; }
+        .group-tag { position: absolute; top: -6px; left: 6px; background: var(--module-bg); font-size: 8px; color: #666; padding: 0 4px; font-weight: bold; }
+        .knob-row { display: flex; justify-content: space-around; align-items: center; }
+        
+        /* Knob Standard */
+        .knob-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: ns-resize; width: 50px; position: relative; }
+        .knob-svg { width: 40px; height: 40px; pointer-events: none; }
+        .knob-track { fill: none; stroke: #222; stroke-width: 4; }
+        .knob-value { fill: none; stroke: var(--gold); stroke-width: 4; stroke-linecap: round; }
+        .knob-pointer { stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+        .knob-label { font-size: 9px; color: #777; text-transform: uppercase; margin-top: -2px; }
+        .knob-val-disp { font-size: 8px; color: var(--gold); font-family: monospace; opacity: 0.8; cursor: text; }
+
+        /* Knob Large (Gain) - Fixed Grid Layout */
+        .knob-wrap.large {
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            width: 100%; 
+            align-items: center;
+            justify-items: center;
+        }
+        .knob-wrap.large .knob-svg { width: 50px; height: 50px; justify-self: end; margin-right: 5px; }
+        .knob-wrap.large .knob-info {
+            display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+            justify-self: start; margin-left: 5px;
+        }
+        .knob-wrap.large .knob-label { font-size: 11px; font-weight: bold; color: #aaa; margin: 0; }
+        .knob-wrap.large .knob-val-disp { font-size: 12px; font-weight: bold; }
+
+        /* Footer */
+        .ch-footer { padding: 10px; border-top: 1px solid #333; flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+        .test-btn {
+            flex: 1; height: 35px; background: #2a2a2a; color: #666;
+            border: 1px solid #444; font-weight: bold; font-size: 12px;
+            cursor: pointer; pointer-events: auto; letter-spacing: 2px; transition: 0.2s;
+        }
+        .test-btn:hover { color: #fff; border-color: #888; }
+        .test-btn:active { transform: scale(0.98); }
+        .test-btn.mode-hold { color: var(--gold); border-color: var(--gold); }
+        .test-btn.mode-hold:active { background: var(--gold); color: #000; }
+        .test-btn.mode-shot { color: var(--cyan); border-color: var(--cyan); }
+        .test-btn.mode-shot:active { background: var(--cyan); color: #000; }
+
+        .mode-switch {
+            width: 40px; height: 18px; background: #111; border: 1px solid #444;
+            border-radius: 10px; position: relative; cursor: pointer;
+        }
+        .mode-switch::after {
+            content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+            background: #666; border-radius: 50%; transition: 0.3s;
+        }
+        .mode-switch.hold::after { background: var(--gold); box-shadow: 0 0 5px var(--gold); }
+        .mode-switch.shot::after { left: 24px; background: var(--cyan); box-shadow: 0 0 5px var(--cyan); }
+
+        /* Master */
+        .master-strip { width: 400px; background: #151515; border: 1px solid #333; display: flex; flex-direction: column; padding: 15px; }
+        .brand-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; position: relative; }
+        .brand { font-size: 20px; font-weight: 900; color: var(--gold); letter-spacing: 3px; }
+        .ver { font-size: 10px; color: #555; }
+        .info-icon { background: none; border: 1px solid #444; color: #666; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .info-icon:hover { color: var(--gold); border-color: var(--gold); }
+        
+        /* Info Panel */
+        #info-panel {
+            position: absolute; top: 40px; right: 20px; width: 220px;
+            background: #0e0e0e; border: 1px solid var(--gold); padding: 15px;
+            z-index: 200; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: none; font-size: 11px; color: #aaa; text-align: left;
+        }
+        #info-panel p { margin: 5px 0; }
+        #info-panel a { color: var(--gold); text-decoration: none; }
+        #info-panel a:hover { text-decoration: underline; }
+        #credits-name { color: #fff; font-weight: bold; }
+
+        .paz-container { flex: 1; background: #000; border: 2px solid #444; border-radius: 4px; margin-bottom: 15px; position: relative; }
+        canvas#paz-viz { width: 100%; height: 100%; display: block; }
+        .big-trigger {
+            flex: 1; height: 60px; background: linear-gradient(135deg, #222, #111);
+            border: 1px solid #444; color: #666;
+            font-size: 18px; font-weight: bold; letter-spacing: 4px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.2s;
+        }
+        .big-trigger.mode-hold { color: var(--gold); border-color: var(--gold); }
+        .big-trigger.mode-hold:active { background: var(--gold); color: #000; box-shadow: 0 0 30px var(--gold); }
+        .big-trigger.mode-shot { color: var(--cyan); border-color: var(--cyan); }
+        .big-trigger.mode-shot:active { background: var(--cyan); color: #000; box-shadow: 0 0 30px var(--cyan); }
+        
+        .master-trigger-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .export-box { background: #1a1a1a; padding: 10px; border: 1px solid #333; border-radius: 4px; }
+        .export-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .export-mode-group { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #888; }
+        .btn-exp { width: 100%; background: #222; border: 1px solid #444; color: #888; padding: 6px; margin-top: 5px; font-size: 10px; cursor: pointer; font-weight: bold; }
+        .btn-exp:hover { border-color: var(--gold); color: var(--gold); }
+        
+        #rename-container { display: none; margin-bottom: 10px; }
+        #filename-input { 
+            width: 100%; background: #000; border: 1px solid var(--gold); color: var(--gold); 
+            padding: 4px; font-size: 11px; outline: none; box-sizing: border-box;
+        }
+
+        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        #start-btn { padding: 15px 40px; font-size: 16px; color: var(--gold); background: transparent; border: 2px solid var(--gold); cursor: pointer; text-transform: uppercase; letter-spacing: 3px; }
+        .loading { margin-top: 15px; color: #666; font-size: 11px; display: none; }
+        .error-msg { color: #ff4444; margin-top: 20px; display: none; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <button id="start-btn">Initialize Console</button>
+        <div class="loading" id="loading-msg">RENDERING...</div>
+        <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <div class="console-container">
+        <div style="display:flex; gap:10px;" id="modules-rack"></div>
+
+        <div class="master-strip">
+            <div class="brand-row">
+                <div class="brand">THE ARMORY <span class="ver">v1.2</span></div>
+                <button class="info-icon" id="info-btn">i</button>
+                <div id="info-panel">
+                    <p>Developer: <span id="credits-name">Shengwen Wang</span></p>
+                    <p>License: MIT</p>
+                    <p>Email: 3052949735@qq.com</p>
+                    <p><a href="https://github.com" target="_blank">GitHub Repository</a></p>
+                    <p><a href="https://b23.tv/9YSBSWw" target="_blank">Bilibili Channel</a></p>
+                </div>
+            </div>
+            <div class="paz-container"><canvas id="paz-viz"></canvas></div>
+            
+            <div class="master-ctrls">
+                <div class="master-trigger-row">
+                    <div class="big-trigger mode-hold" id="master-trigger" onmousedown="masterDown()" onmouseup="masterUp()" onmouseleave="masterUp()">MASTER HOLD</div>
+                    <div class="mode-switch hold" id="master-mode-sw" onclick="toggleMasterMode()" title="Hold (Gold) / Shot (Cyan)"></div>
+                </div>
+
+                <div class="export-box">
+                    <div class="export-header-row">
+                        <div class="export-mode-group">
+                            <span>MODE: <span id="exp-mode-text" style="color:var(--gold)">HOLD</span></span>
+                            <div class="mode-switch hold" id="exp-mode-sw" onclick="toggleExportMode()"></div>
+                        </div>
+                        <button class="icon-btn" id="rename-btn" onclick="toggleRename()" title="Rename File">✏️</button>
+                    </div>
+                    
+                    <div id="rename-container">
+                        <input type="text" id="filename-input" placeholder="Custom Filename..." onkeydown="if(event.key==='Enter') saveRename()">
+                    </div>
+
+                    <div class="ctrl-header"><span>LENGTH</span><span class="val-text" id="disp-dur">10s</span></div>
+                    <input type="range" id="export-dur" min="1" max="30" value="10" oninput="document.getElementById('disp-dur').innerText=this.value+'s'">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-exp" onclick="exportAudio(48000)">Export 48k 24bit</button>
+                        <button class="btn-exp" onclick="exportAudio(96000)">Export 96k 24bit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- PROTECTION & CREDITS ---
+        function checkIntegrity() {
+            const name = document.getElementById('credits-name');
+            if(!name || name.innerText !== "Shengwen Wang") {
+                document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:20%'>LICENSE VIOLATION: CREDITS REMOVED</h1>";
+                throw new Error("Integrity Check Failed");
+            }
+        }
+
+        document.getElementById('info-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const panel = document.getElementById('info-panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // --- CONFIG ---
+        const DEFAULTS = { pitch: 600, metal: 3.0, wobble: 20, transient: 50, time: 1.5, speed: 8, air: 50, width: 100, verb: 30, eqH: 0, eqM: 0, eqL: 0, hp: 20, lp: 20000, gain: 0 };
+        const PRESETS = {
+            "Sword": { ...DEFAULTS, pitch: 600, metal: 3.5, wobble: 25, transient: 50, time: 1.5, speed: 8, air: 50, width: 80, verb: 30 },
+            "Dagger": { ...DEFAULTS, pitch: 1500, metal: 2.0, wobble: 10, transient: 10, time: 0.5, speed: 18, air: 30, width: 40, verb: 10, eqH: 5, eqL: -10, hp: 200, gain: 2 },
+            "Greatsword": { ...DEFAULTS, pitch: 120, metal: 0.5, wobble: 60, transient: 80, time: 3.0, speed: 3.5, air: 80, width: 100, verb: 60, eqL: 8, lp: 8000, gain: 3 },
+            "Katana": { ...DEFAULTS, pitch: 850, metal: 5.0, wobble: 5, transient: 20, time: 1.0, speed: 12, air: 40, width: 60, verb: 20, eqH: 8, hp: 100, gain: 1 },
+            "Chain": { ...DEFAULTS, pitch: 1800, metal: 9.0, wobble: 80, transient: 5, time: 0.8, speed: 22, air: 20, width: 90, verb: 15, eqH: 10, eqL: -20, hp: 500, gain: -2 }
+        };
+
+        let modules = [];
+        let masterAnalyser, masterLimiter;
+        let isInitialized = false;
+        let activeKnob = null;
+        let isSpeedSynced = false;
+        let preSyncSpeeds = [8, 8, 8];
+        let preSyncTimes = [1.5, 1.5, 1.5];
+        let masterMode = 'hold'; 
+        let exportMode = 'hold';
+        let editingState = null;
+        
+        let customName = "";
+        let globalExportCount = 0;
+        let isRenaming = false;
+        let lastClickTime = 0;
+
+        class MetalModule {
+            constructor(id, container) {
+                this.id = id;
+                this.active = (id === 0);
+                this.params = { ...PRESETS["Sword"] };
+                this.mode = 'hold';
+                this.nodes = {};
+                this.cvs = null; this.ctx = null;
+                this.renderUI(container);
+                this.cvs = document.getElementById(`viz-${this.id}`);
+                this.ctx = this.cvs.getContext('2d');
+                
+                setTimeout(() => {
+                    this.updateUIState();
+                    if(!this.active) this.container.classList.add('inactive');
+                    this.drawTransient();
+                }, 50);
+            }
+
+            renderUI(parent) {
+                const div = document.createElement('div');
+                div.className = `channel-strip ${this.active ? 'active' : 'inactive'}`;
+                const syncBtn = this.id === 0 ? `<button class="icon-btn" id="sync-btn" onclick="toggleSync()" title="Sync Speed">🔄</button>` : '';
+
+                div.innerHTML = `
+                    <div class="ch-header">
+                        <div class="header-top">
+                            <div class="header-left">
+                                <div class="power-wrapper">
+                                    <div class="power-btn" onclick="toggleModule(${this.id})"></div>
+                                    <span class="power-label" style="font-size:8px; color:#555; font-weight:bold;">PWR</span>
+                                </div>
+                                <div class="ch-title">${this.id === 0 ? 'CORE' : 'LAYER ' + String.fromCharCode(65 + this.id - 1)}</div>
+                            </div>
+                            <div class="header-right">
+                                <button class="icon-btn" onclick="randomizeModule(${this.id})" title="Randomize Design">🎲</button>
+                                ${syncBtn}
+                            </div>
+                        </div>
+                        <div class="preset-wrapper">
+                            <button class="preset-btn" id="pname-${this.id}" onclick="togglePresetList(${this.id})">Sword ▼</button>
+                            <div class="preset-list" id="plist-${this.id}">
+                                ${Object.keys(PRESETS).map(k => `<div class="p-item" onclick="loadPreset(${this.id}, '${k}')">${k}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ch-body">
+                        <div class="half-module">
+                            <div class="module-label">DESIGN</div>
+                            <div class="viz-wrapper"><canvas id="viz-${this.id}" class="mini-viz" width="250" height="40"></canvas></div>
+                            <div class="shape-time-row">
+                                <div>${this.slider('transient', 'Shape', 0, 100, 1, '')}</div>
+                                <div>${this.slider('time', 'Time', 0.1, 5.0, 0.1, 's')}</div>
+                            </div>
+                            <div class="source-grid">
+                                <div>${this.slider('pitch', 'Pitch', 50, 2000, 10, 'Hz')}${this.slider('metal', 'Metal', 0.1, 10, 0.1, '')}${this.slider('wobble', 'Wobble', 0, 100, 1, '%')}</div>
+                                <div>${this.slider('speed', 'Speed', 0.5, 25, 0.5, 'Hz')}${this.slider('air', 'Air', 0, 100, 1, '%')}</div>
+                            </div>
+                        </div>
+                        <div class="half-module">
+                            <div class="module-label">MIXER</div>
+                            <div class="mixer-groups">
+                                <div class="knob-group"><div class="group-tag">EQ</div><div class="knob-row">${this.knob('eqL', 'Lo', -20, 20, 1, 'dB', 'bipolar')}${this.knob('eqM', 'Mid', -20, 20, 1, 'dB', 'bipolar')}${this.knob('eqH', 'Hi', -20, 20, 1, 'dB', 'bipolar')}</div></div>
+                                <div class="knob-group"><div class="group-tag">FILTER</div><div class="knob-row center">${this.knob('hp', 'HPF', 20, 1000, 10, 'Hz', 'unipolar')}${this.knob('lp', 'LPF', 1000, 20000, 100, 'Hz', 'unipolar')}</div></div>
+                                <div class="knob-group"><div class="group-tag">SPACE</div><div class="knob-row center">${this.knob('width', 'Width', 0, 100, 1, '%', 'unipolar')}${this.knob('verb', 'Verb', 0, 100, 1, '%', 'unipolar')}</div></div>
+                                <div class="knob-row center">${this.knob('gain', 'GAIN', -20, 10, 0.5, 'dB', 'bipolar', true)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ch-footer">
+                        <button class="test-btn mode-hold" id="test-btn-${this.id}" onmousedown="moduleDown(${this.id})" onmouseup="moduleUp(${this.id})" onmouseleave="moduleUp(${this.id})">HOLD</button>
+                        <div class="mode-switch hold" id="mode-sw-${this.id}" onclick="toggleModuleMode(${this.id})" title="Hold / Shot"></div>
+                    </div>
+                `;
+                parent.appendChild(div);
+                this.container = div;
+            }
+
+            slider(key, label, min, max, step, unit) {
+                return `<div class="ctrl-row" id="row-${this.id}-${key}" onmousedown="checkSliderReset(event, ${this.id}, '${key}')">
+                    <div class="ctrl-header"><span>${label}</span><span class="val-text" id="d-${this.id}-${key}" onmousedown="event.stopPropagation()" ondblclick="editParam(${this.id}, '${key}')">${this.params[key]}${unit}</span></div>
+                    <input type="range" id="i-${this.id}-${key}" min="${min}" max="${max}" step="${step}" value="${this.params[key]}" oninput="updateParam(${this.id}, '${key}', this.value)">
+                </div>`;
+            }
+
+            knob(key, label, min, max, step, unit, type, isLarge=false) {
+                if (isLarge) {
+                    return `
+                        <div class="knob-wrap large" id="kwrap-${this.id}-${key}" onmousedown="startDragKnob(event, ${this.id}, '${key}', ${min}, ${max}, ${step}, '${type}')">
+                            <svg class="knob-svg" viewBox="0 0 100 100"><defs><radialGradient id="grad-${this.id}-${key}" cx="50%" cy="50%" r="50%" fx="50%" fy="50%"><stop offset="0%" style="stop-color:#444;stop-opacity:1" /><stop offset="100%" style="stop-color:#111;stop-opacity:1" /></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#grad-${this.id}-${key})" stroke="#000" stroke-width="2" /><path class="knob-value" id="karc-${this.id}-${key}" d="" /><line class="knob-pointer" id="kptr-${this.id}-${key}" x1="50" y1="50" x2="50" y2="15" transform="" /></svg>
+                            <div class="knob-info">
+                                <div class="knob-label">${label}</div>
+                                <div class="knob-val-disp" id="kd-${this.id}-${key}" onmousedown="event.stopPropagation()" ondblclick="editParam(${this.id}, '${key}')">${this.params[key]}${unit}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                return `<div class="knob-wrap" id="kwrap-${this.id}-${key}" onmousedown="startDragKnob(event, ${this.id}, '${key}', ${min}, ${max}, ${step}, '${type}')"><svg class="knob-svg" viewBox="0 0 100 100"><defs><radialGradient id="grad-${this.id}-${key}" cx="50%" cy="50%" r="50%" fx="50%" fy="50%"><stop offset="0%" style="stop-color:#444;stop-opacity:1" /><stop offset="100%" style="stop-color:#111;stop-opacity:1" /></radialGradient></defs><circle cx="50" cy="50" r="40" fill="url(#grad-${this.id}-${key})" stroke="#000" stroke-width="2" /><path class="knob-value" id="karc-${this.id}-${key}" d="" /><line class="knob-pointer" id="kptr-${this.id}-${key}" x1="50" y1="50" x2="50" y2="15" transform="" /></svg><div class="knob-label">${label}</div><div class="knob-val-disp" id="kd-${this.id}-${key}" onmousedown="event.stopPropagation()" ondblclick="editParam(${this.id}, '${key}')">${this.params[key]}${unit}</div></div>`;
+            }
+
+            drawTransient() {
+                if(!this.ctx) return;
+                const w = this.cvs.width; const h = this.cvs.height;
+                const val = this.params.transient;
+                const tm = this.params.time;
+                const r = val / 100;
+                
+                const t_total = tm; 
+                const att_w = ( (0.01 + (r * 0.5 * t_total)) / t_total ) * w;
+                const dec_w = ( (0.01 + ((1-r) * 0.5 * t_total)) / t_total ) * w;
+                const rel_w = 0.25 * w;
+                const sus_w = w - att_w - dec_w - rel_w; 
+                const sus_h = h - (r * (h-2));
+
+                this.ctx.clearRect(0,0,w,h);
+                this.ctx.strokeStyle = '#d4af37'; this.ctx.lineWidth = 2;
+                this.ctx.fillStyle = 'rgba(212, 175, 55, 0.1)';
+                this.ctx.beginPath();
+                this.ctx.moveTo(0,h);
+                this.ctx.lineTo(att_w, 2); 
+                this.ctx.lineTo(att_w + dec_w, sus_h); 
+                this.ctx.lineTo(att_w + dec_w + sus_w, sus_h); 
+                this.ctx.lineTo(w, h); 
+                this.ctx.stroke();
+                this.ctx.fill();
+            }
+
+            updateUIState() {
+                for(const [k, v] of Object.entries(this.params)) {
+                    // KEY FIX: Only update text if NOT editing this specific param
+                    const isEditingThis = editingState && editingState.id === this.id && editingState.key === k;
+                    
+                    if (!isEditingThis) {
+                        const el = document.getElementById(`i-${this.id}-${k}`);
+                        const disp = document.getElementById(`d-${this.id}-${k}`);
+                        if(el) { el.value = v; if(disp) disp.innerText = v + (k=='pitch'||k=='speed'?'Hz':k=='time'?'s':'%'); }
+                        
+                        const kDisp = document.getElementById(`kd-${this.id}-${k}`);
+                        if(kDisp) kDisp.innerText = v + (k.includes('eq')||k=='gain'?'dB':k=='hp'||k=='lp'?'Hz':'%');
+                    }
+
+                    const kArc = document.getElementById(`karc-${this.id}-${k}`);
+                    const kPtr = document.getElementById(`kptr-${this.id}-${k}`);
+                    if(kArc) {
+                        const range = getRange(k);
+                        const pct = (v - range.min) / (range.max - range.min);
+                        const type = (k.includes('eq')||k=='gain') ? 'bipolar' : 'unipolar';
+                        const deg = -135 + (pct * 270);
+                        kPtr.setAttribute('transform', `rotate(${deg}, 50, 50)`);
+                        let startAngle, endAngle;
+                        if (type === 'bipolar') {
+                            startAngle = -90; endAngle = deg - 90;
+                            const isNeg = v < 0;
+                            kArc.style.stroke = isNeg ? '#ff4444' : '#d4af37';
+                            kArc.setAttribute('d', describeArc(50, 50, 40, Math.min(startAngle, endAngle), Math.max(startAngle, endAngle)));
+                        } else {
+                            startAngle = -225; endAngle = startAngle + (pct * 270);
+                            kArc.style.stroke = '#d4af37';
+                            kArc.setAttribute('d', describeArc(50, 50, 40, startAngle, endAngle));
+                        }
+                    }
+                }
+                this.drawTransient();
+            }
+
+            initAudio(ctx, dest) {
+                const s = new Tone.FMSynth({ context: ctx });
+                const lfo1 = new Tone.LFO({ context: ctx, frequency: 0.2 }).start();
+                const lfo2 = new Tone.LFO({ context: ctx, frequency: 3.1 }).start();
+                lfo1.connect(s.detune); lfo2.connect(s.detune);
+                const af = new Tone.AutoFilter({ context: ctx, filter: { type: "bandpass" } }).start();
+                const trem = new Tone.Tremolo({ context: ctx }).start();
+                const rev = new Tone.Reverb({ context: ctx });
+                const eq = new Tone.EQ3({ context: ctx });
+                const hp = new Tone.Filter({ context: ctx, type: "highpass" });
+                const lp = new Tone.Filter({ context: ctx, type: "lowpass" });
+                const gain = new Tone.Gain({ context: ctx });
+                s.connect(af); af.connect(trem); trem.connect(eq); eq.connect(hp); hp.connect(lp); lp.connect(rev); rev.connect(gain); gain.connect(dest);
+                this.nodes = { synth:s, lfo1, lfo2, af, trem, rev, eq, hp, lp, gain };
+                this.applyParams();
+            }
+
+            applyParams() {
+                if(!this.nodes.synth) return;
+                const p = this.params; const n = this.nodes;
+                n.synth.harmonicity.value = p.metal; n.synth.modulationIndex.value = p.metal*3;
+                const d = p.wobble/100; n.lfo1.min = -30*d; n.lfo1.max = 30*d; n.lfo2.min = -15*d; n.lfo2.max = 15*d;
+                
+                const t = p.time; const r = p.transient / 100;
+                const att = 0.01 + (r * 0.5 * t); 
+                const dec = 0.01 + ((1-r) * 0.5 * t);
+                const sus = r; 
+                const rel = t * 0.25;
+                n.synth.envelope.attack=att; n.synth.envelope.decay=dec; n.synth.envelope.sustain=sus; n.synth.envelope.release=rel;
+                n.synth.modulationEnvelope.attack=att; n.synth.modulationEnvelope.decay=dec; n.synth.modulationEnvelope.sustain=sus; n.synth.modulationEnvelope.release=rel;
+                
+                n.trem.frequency.rampTo(p.speed, 0.1); n.af.frequency.rampTo(p.speed, 0.1);
+                n.af.filter.Q.value = 1+(p.air/20); n.af.wet.value = p.air/100;
+                n.trem.spread = (p.width/100)*180;
+                n.rev.wet.value = p.verb/100; n.rev.decay = 2.0;
+                n.eq.high.value = p.eqH; n.eq.mid.value = p.eqM; n.eq.low.value = p.eqL;
+                n.hp.frequency.value = p.hp; n.lp.frequency.value = p.lp;
+                n.gain.gain.value = Math.pow(10, p.gain/20);
+            }
+        }
+
+        function polarToCartesian(cx, cy, r, deg) { const rad = deg * Math.PI / 180.0; return { x: cx + (r * Math.cos(rad)), y: cy + (r * Math.sin(rad)) }; }
+        function describeArc(x, y, r, start, end) {
+            const s = polarToCartesian(x, y, r, end); const e = polarToCartesian(x, y, r, start);
+            const flag = end - start <= 180 ? "0" : "1";
+            return ["M", s.x, s.y, "A", r, r, 0, flag, 0, e.x, e.y].join(" ");
+        }
+        function getRange(key) {
+            if(key.includes('eq')) return {min:-20, max:20}; if(key=='gain') return {min:-20, max:10};
+            if(key=='hp') return {min:20, max:1000}; if(key=='lp') return {min:1000, max:20000};
+            if(key=='width' || key=='verb') return {min:0, max:100}; return {min:0, max:100};
+        }
+
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            try { 
+                checkIntegrity(); // Security Check
+                await Tone.start(); 
+                initEngine(); 
+                document.getElementById('overlay').style.display = 'none'; 
+                isInitialized = true; 
+                startPAZ(); 
+            } 
+            catch (e) { 
+                document.getElementById('loading-msg').style.display = 'none'; 
+                document.getElementById('error-msg').style.display = 'block'; 
+                document.getElementById('error-msg').innerText = "INIT ERROR: " + e.message; 
+            }
+        });
+
+        function initEngine() {
+            const rack = document.getElementById('modules-rack');
+            masterLimiter = new Tone.Limiter(-1).toDestination();
+            masterAnalyser = new Tone.Analyser("fft", 2048); masterAnalyser.smoothing = 0.8;
+            for(let i=0; i<3; i++) {
+                const mod = new MetalModule(i, rack);
+                mod.initAudio(Tone.context, masterAnalyser);
+                modules.push(mod);
+            }
+            masterAnalyser.connect(masterLimiter);
+            
+            // Global Click Listener for Input Box Closing
+            document.addEventListener('mousedown', (e) => {
+                if(editingState && e.target.id !== 'active-input') {
+                    finishEditing();
+                }
+                const info = document.getElementById('info-panel');
+                const infoBtn = document.getElementById('info-btn');
+                if(info.style.display === 'block' && e.target !== info && e.target !== infoBtn && !info.contains(e.target)) {
+                    info.style.display = 'none';
+                }
+                const ren = document.getElementById('rename-container');
+                const renBtn = document.getElementById('rename-btn');
+                if(isRenaming && e.target !== ren && e.target !== renBtn && !ren.contains(e.target)) {
+                    saveRename();
+                }
+            });
+        }
+
+        // --- MANUAL DOUBLE CLICK LOGIC ---
+        window.startDragKnob = (e, id, key, min, max, step, type) => {
+            e.preventDefault(); 
+            if(isSpeedSynced && (key === 'speed' || key === 'time') && id !== 0) return;
+            
+            const now = Date.now();
+            if (now - lastClickTime < 300) {
+                resetParam(id, key);
+                return;
+            }
+            lastClickTime = now;
+
+            activeKnob = { id, key, min, max, step, type, startY: e.clientY, startVal: modules[id].params[key] };
+            document.body.style.cursor = 'ns-resize';
+            window.addEventListener('mousemove', onDragKnob); window.addEventListener('mouseup', stopDragKnob);
+        };
+        
+        window.checkSliderReset = (e, id, key) => {
+            if(isSpeedSynced && (key === 'speed' || key === 'time') && id !== 0) return;
+            const now = Date.now();
+            if (now - lastClickTime < 300) {
+                resetParam(id, key);
+            }
+            lastClickTime = now;
+        }
+
+        function onDragKnob(e) {
+            if(!activeKnob) return;
+            const delta = activeKnob.startY - e.clientY;
+            let newVal = activeKnob.startVal + (delta / 200) * (activeKnob.max - activeKnob.min);
+            newVal = Math.round(newVal / activeKnob.step) * activeKnob.step;
+            newVal = Math.max(activeKnob.min, Math.min(activeKnob.max, newVal));
+            if(activeKnob.step < 1) newVal = parseFloat(newVal.toFixed(1));
+            updateParam(activeKnob.id, activeKnob.key, newVal);
+        }
+        function stopDragKnob() {
+            activeKnob = null; document.body.style.cursor = 'default';
+            window.removeEventListener('mousemove', onDragKnob); window.removeEventListener('mouseup', stopDragKnob);
+        }
+
+        window.toggleModule = (id) => {
+            const mod = modules[id]; mod.active = !mod.active;
+            mod.container.className = `channel-strip ${mod.active ? 'active' : 'inactive'}`;
+            if(!mod.active && mod.nodes.synth) mod.nodes.synth.triggerRelease();
+        };
+
+        window.updateParam = (id, key, val) => {
+            const mod = modules[id]; mod.params[key] = parseFloat(val);
+            if(isInitialized) mod.applyParams();
+            mod.updateUIState();
+            document.getElementById(`pname-${id}`).innerText = "Custom *";
+            if((key === 'speed' || key === 'time') && id === 0 && isSpeedSynced) { 
+                updateParam(1, key, val); 
+                updateParam(2, key, val); 
+            }
+            if(editingState && editingState.id === id && editingState.key === key) {
+                const inp = document.getElementById('active-input');
+                if(inp) inp.value = (key=='metal'||key=='time'||key=='speed'||key=='gain') ? val.toFixed(1) : Math.round(val);
+            }
+        };
+        window.resetParam = (id, key) => { if(isSpeedSynced && (key === 'speed' || key === 'time') && id !== 0) return; updateParam(id, key, DEFAULTS[key]); };
+
+        window.randomizeModule = (id) => {
+            const r = (min, max) => Math.random() * (max - min) + min;
+            const ri = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+            updateParam(id, 'pitch', ri(100, 1500)); updateParam(id, 'metal', parseFloat(r(0.5, 8.0).toFixed(1)));
+            updateParam(id, 'wobble', ri(0, 50)); updateParam(id, 'transient', ri(10, 90));
+            updateParam(id, 'time', parseFloat(r(0.5, 3.0).toFixed(1)));
+            if(!isSpeedSynced || id === 0) updateParam(id, 'speed', parseFloat(r(1, 20).toFixed(1)));
+            updateParam(id, 'air', ri(20, 80));
+        };
+
+        window.toggleSync = () => {
+            isSpeedSynced = !isSpeedSynced;
+            const btn = document.getElementById('sync-btn');
+            const row1s = document.getElementById('row-1-speed'); const row2s = document.getElementById('row-2-speed');
+            const row1t = document.getElementById('row-1-time'); const row2t = document.getElementById('row-2-time');
+            if(isSpeedSynced) {
+                btn.classList.add('active');
+                preSyncSpeeds[1] = modules[1].params.speed; preSyncSpeeds[2] = modules[2].params.speed;
+                preSyncTimes[1] = modules[1].params.time; preSyncTimes[2] = modules[2].params.time;
+                const coreSpeed = modules[0].params.speed; const coreTime = modules[0].params.time;
+                updateParam(1, 'speed', coreSpeed); updateParam(2, 'speed', coreSpeed);
+                updateParam(1, 'time', coreTime); updateParam(2, 'time', coreTime);
+                row1s.classList.add('locked'); row2s.classList.add('locked');
+                row1t.classList.add('locked'); row2t.classList.add('locked');
+            } else {
+                btn.classList.remove('active');
+                row1s.classList.remove('locked'); row2s.classList.remove('locked');
+                row1t.classList.remove('locked'); row2t.classList.remove('locked');
+                updateParam(1, 'speed', preSyncSpeeds[1]); updateParam(2, 'speed', preSyncSpeeds[2]);
+                updateParam(1, 'time', preSyncTimes[1]); updateParam(2, 'time', preSyncTimes[2]);
+            }
+        };
+
+        window.editParam = (id, key) => {
+            if(isSpeedSynced && (key === 'speed' || key === 'time') && id !== 0) return;
+            if(editingState) finishEditing();
+            const isKnob = key.includes('eq') || key=='gain' || key=='hp' || key=='lp' || key=='width' || key=='verb';
+            const elId = isKnob ? `kd-${id}-${key}` : `d-${id}-${key}`;
+            const el = document.getElementById(elId);
+            if(!el) return;
+            editingState = { id, key, el };
+            const currentVal = modules[id].params[key];
+            const isFloat = ['metal', 'time', 'speed', 'gain'].includes(key);
+            el.innerHTML = `<input type="number" id="active-input" class="param-input" value="${isFloat ? currentVal.toFixed(1) : Math.round(currentVal)}" step="${isFloat?0.1:1}" onkeydown="if(event.key==='Enter') finishEditing()">`;
+            const inp = document.getElementById('active-input');
+            inp.focus(); inp.select();
+            inp.onmousedown = (e) => e.stopPropagation();
+        };
+
+        window.commitEdit = (id, key, val) => {
+            let num = parseFloat(val); if(isNaN(num)) num = modules[id].params[key];
+            const isFloat = ['metal', 'time', 'speed', 'gain'].includes(key);
+            if (!isFloat) num = Math.round(num);
+            const range = (key === 'pitch' || key === 'metal' || key === 'speed' || key === 'transient' || key === 'wobble' || key === 'air' || key === 'time') 
+                ? {min: document.getElementById(`i-${id}-${key}`).min, max: document.getElementById(`i-${id}-${key}`).max} : getRange(key);
+            num = Math.max(range.min, Math.min(range.max, num));
+            updateParam(id, key, num);
+        };
+
+        window.finishEditing = () => {
+            if(!editingState) return;
+            const inp = document.getElementById('active-input');
+            if(inp) commitEdit(editingState.id, editingState.key, inp.value);
+            const { id, key } = editingState;
+            editingState = null;
+            updateParam(id, key, modules[id].params[key]); 
+        };
+
+        // --- RENAME LOGIC ---
+        window.toggleRename = () => {
+            const cont = document.getElementById('rename-container');
+            const inp = document.getElementById('filename-input');
+            if(isRenaming) { saveRename(); } 
+            else { cont.style.display = 'block'; inp.focus(); isRenaming = true; }
+        };
+        window.saveRename = () => {
+            const cont = document.getElementById('rename-container');
+            const inp = document.getElementById('filename-input');
+            const btn = document.getElementById('rename-btn');
+            customName = inp.value.trim();
+            if(customName) { btn.classList.add('active'); } else { btn.classList.remove('active'); }
+            cont.style.display = 'none'; isRenaming = false;
+        };
+
+        window.toggleModuleMode = (id) => {
+            const mod = modules[id];
+            mod.mode = mod.mode === 'hold' ? 'shot' : 'hold';
+            const sw = document.getElementById(`mode-sw-${id}`);
+            const btn = document.getElementById(`test-btn-${id}`);
+            sw.className = `mode-switch ${mod.mode}`;
+            btn.className = `test-btn mode-${mod.mode}`;
+            btn.innerText = mod.mode.toUpperCase();
+        };
+        window.toggleMasterMode = () => {
+            masterMode = masterMode === 'hold' ? 'shot' : 'hold';
+            const sw = document.getElementById('master-mode-sw');
+            const btn = document.getElementById('master-trigger');
+            sw.className = `mode-switch ${masterMode}`;
+            btn.className = `big-trigger mode-${masterMode}`;
+            btn.innerText = "MASTER " + masterMode.toUpperCase();
+        };
+        window.toggleExportMode = () => {
+            exportMode = exportMode === 'hold' ? 'shot' : 'hold';
+            const sw = document.getElementById('exp-mode-sw');
+            const txt = document.getElementById('exp-mode-text');
+            sw.className = `mode-switch ${exportMode}`;
+            txt.innerText = exportMode.toUpperCase();
+            txt.style.color = exportMode === 'hold' ? 'var(--gold)' : 'var(--cyan)';
+        };
+
+        function triggerOneShot(mod) {
+            if(!mod.active || !mod.nodes.synth) return;
+            const p = mod.params;
+            const rel = p.time * 0.25;
+            const gate = p.time - rel;
+            mod.nodes.synth.triggerAttackRelease(p.pitch, gate);
+            mod.nodes.lfo1.phase = Math.random()*360;
+        }
+
+        window.moduleDown = (id) => {
+            if(!isInitialized) return;
+            const mod = modules[id];
+            if(!mod.active) return;
+            if(mod.mode === 'shot') triggerOneShot(mod);
+            else {
+                mod.nodes.synth.triggerAttack(mod.params.pitch);
+                mod.nodes.lfo1.phase = Math.random()*360;
+            }
+        };
+        window.moduleUp = (id) => {
+            if(!isInitialized) return;
+            const mod = modules[id];
+            if(mod.mode === 'hold' && mod.nodes.synth) mod.nodes.synth.triggerRelease();
+        };
+
+        window.masterDown = () => {
+            if(!isInitialized) return;
+            document.getElementById('master-trigger').classList.add('playing');
+            modules.forEach(mod => {
+                if(!mod.active) return;
+                if(masterMode === 'shot') triggerOneShot(mod);
+                else {
+                    mod.nodes.synth.triggerAttack(mod.params.pitch);
+                    mod.nodes.lfo1.phase = Math.random()*360;
+                }
+            });
+        };
+        window.masterUp = () => {
+            if(!isInitialized) return;
+            document.getElementById('master-trigger').classList.remove('playing');
+            if(masterMode === 'hold') {
+                modules.forEach(mod => { if(mod.active && mod.nodes.synth) mod.nodes.synth.triggerRelease(); });
+            }
+        };
+
+        window.togglePresetList = (id) => document.getElementById(`plist-${id}`).classList.toggle('show');
+        window.loadPreset = (id, name) => {
+            const mod = modules[id]; mod.params = { ...PRESETS[name] };
+            mod.updateUIState(); if(isInitialized) mod.applyParams();
+            document.getElementById(`pname-${id}`).innerText = name;
+            document.getElementById(`plist-${id}`).classList.remove('show');
+        };
+
+        function startPAZ() {
+            const canvas = document.getElementById('paz-viz'); const ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth * 2; canvas.height = canvas.clientHeight * 2;
+            function draw() {
+                requestAnimationFrame(draw);
+                const w = canvas.width; const h = canvas.height;
+                const data = masterAnalyser.getValue(); 
+                ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+                ctx.strokeStyle = '#334455'; ctx.lineWidth = 1; ctx.font = "bold 14px sans-serif"; ctx.fillStyle = "#d4af37";
+                const dBs = [0, -20, -40, -60, -80];
+                dBs.forEach(db => { const y = (Math.abs(db)/100)*h; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); ctx.fillText(db, 5, y-4); });
+                const freqs = [60, 250, 1000, 4000, 16000]; const freqLabels = ["60", "250", "1k", "4k", "16k"];
+                freqs.forEach((f, i) => { const x = (i+1)*(w/6); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); ctx.fillText(freqLabels[i], x+4, h-5); });
+                ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(212, 175, 55, 0.2)';
+                ctx.beginPath(); ctx.moveTo(0, h);
+                const len = data.length;
+                for(let i=0; i<len; i++) {
+                    const val = data[i]; if(val === -Infinity) continue;
+                    let yNorm = (val+80)/80; yNorm = Math.max(0, Math.min(1, yNorm));
+                    const freq = i * (Tone.context.sampleRate/2 / len);
+                    const minLog = Math.log10(20); const maxLog = Math.log10(20000); const fLog = Math.log10(Math.max(20, freq));
+                    const x = ((fLog-minLog)/(maxLog-minLog))*w;
+                    if(x >= 0 && x <= w) ctx.lineTo(x, h-(yNorm*h));
+                }
+                ctx.stroke(); ctx.fill();
+            }
+            draw();
+        }
+
+        window.exportAudio = async (sampleRate) => {
+            if(!isInitialized) return;
+            const dur = parseFloat(document.getElementById('export-dur').value);
+            const overlay = document.getElementById('overlay'); const msg = document.getElementById('loading-msg');
+            overlay.style.display = 'flex'; document.getElementById('start-btn').style.display = 'none'; msg.style.display = 'block';
+            
+            let maxRel = 0;
+            modules.forEach(m => { if(m.active) { const rel = m.params.time * 0.25; if(rel > maxRel) maxRel = rel; } });
+            const renderDur = exportMode === 'hold' ? dur + maxRel + 1.0 : dur;
+
+            try {
+                const buffer = await Tone.Offline((offCtx) => {
+                    modules.forEach(mod => {
+                        if(!mod.active) return;
+                        const p = mod.params;
+                        const s = new Tone.FMSynth({ context: offCtx, harmonicity: p.metal, modulationIndex: p.metal*3, envelope: {attack:0.1,decay:0.2,sustain:0.8,release:1.0}, modulationEnvelope: {attack:0.1,decay:0.2,sustain:1.0,release:1.0} });
+                        
+                        const t = p.time; const r = p.transient / 100;
+                        const att = 0.01 + (r * 0.5 * t); const dec = 0.01 + ((1-r) * 0.5 * t); const sus = r; const rel = t * 0.25;
+                        s.envelope.attack=att; s.envelope.decay=dec; s.envelope.sustain=sus; s.envelope.release=rel;
+                        s.modulationEnvelope.attack=att; s.modulationEnvelope.decay=dec; s.modulationEnvelope.sustain=sus; s.modulationEnvelope.release=rel;
+                        const d = p.wobble/100;
+                        const lfo1 = new Tone.LFO({ context: offCtx, frequency: 0.2, min: -30*d, max: 30*d }).start();
+                        const lfo2 = new Tone.LFO({ context: offCtx, frequency: 3.1, min: -15*d, max: 15*d }).start();
+                        lfo1.connect(s.detune); lfo2.connect(s.detune);
+                        const af = new Tone.AutoFilter({ context: offCtx, frequency: p.speed, filter: { type: "bandpass", Q: 1+(p.air/20) }, wet: p.air/100 }).start();
+                        af.baseFrequency = 800 + (Math.random()*100*d);
+                        const trem = new Tone.Tremolo({ context: offCtx, frequency: p.speed, depth: 1, spread: (p.width/100)*180 }).start();
+                        const rev = new Tone.Reverb({ context: offCtx, decay: 2.0, wet: p.verb/100 });
+                        const eq = new Tone.EQ3({ context: offCtx, high: p.eqH, mid: p.eqM, low: p.eqL });
+                        const hp = new Tone.Filter({ context: offCtx, type: "highpass", frequency: p.hp });
+                        const lp = new Tone.Filter({ context: offCtx, type: "lowpass", frequency: p.lp });
+                        const gain = new Tone.Gain({ context: offCtx, gain: Math.pow(10, p.gain/20) });
+                        s.connect(af); af.connect(trem); trem.connect(eq); eq.connect(hp); hp.connect(lp); lp.connect(rev); rev.connect(gain); gain.connect(offCtx.destination);
+                        
+                        if (exportMode === 'hold') {
+                            s.triggerAttackRelease(p.pitch, dur - 0.1, 0);
+                        } else {
+                            const interval = p.time + 0.2; 
+                            for (let t = 0; t < dur; t += interval) {
+                                const gate = p.time - (p.time * 0.25);
+                                s.triggerAttackRelease(p.pitch, gate, t);
+                            }
+                        }
+                    });
+                }, renderDur, 2, sampleRate);
+                const wav = audioBufferToWav(buffer.get());
+                
+                globalExportCount++;
+                let baseName = customName ? customName : `Master_Metal_${exportMode.toUpperCase()}`;
+                const fileName = `${baseName}_${String(globalExportCount).padStart(3, '0')}.wav`;
+
+                const url = URL.createObjectURL(wav);
+                const a = document.createElement('a'); a.style.display='none'; a.href=url; a.download=fileName; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url);
+            } catch(e) { alert(e); } finally { overlay.style.display = 'none'; document.getElementById('start-btn').style.display = 'block'; msg.style.display = 'none'; }
+        };
+        function audioBufferToWav(buffer){const numChannels=buffer.numberOfChannels;const sampleRate=buffer.sampleRate;const format=1;const bitDepth=16;let result;if(numChannels===2){result=interleave(buffer.getChannelData(0),buffer.getChannelData(1))}else{result=buffer.getChannelData(0)}return encodeWAV(result,numChannels,sampleRate,bitDepth)}
+        function interleave(inputL,inputR){const length=inputL.length+inputR.length;const result=new Float32Array(length);let index=0,inputIndex=0;while(index<length){result[index++]=inputL[inputIndex];result[index++]=inputR[inputIndex];inputIndex++}return result}
+        function encodeWAV(samples,numChannels,sampleRate,bitDepth){const bytesPerSample=bitDepth/8;const blockAlign=numChannels*bytesPerSample;const buffer=new ArrayBuffer(44+samples.length*bytesPerSample);const view=new DataView(buffer);writeString(view,0,'RIFF');view.setUint32(4,36+samples.length*bytesPerSample,true);writeString(view,8,'WAVE');writeString(view,12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,numChannels,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*blockAlign,true);view.setUint16(32,blockAlign,true);view.setUint16(34,bitDepth,true);writeString(view,36,'data');view.setUint32(40,samples.length*bytesPerSample,true);floatTo16BitPCM(view,44,samples);return new Blob([view],{type:'audio/wav'})}
+        function floatTo16BitPCM(output,offset,input){for(let i=0;i<input.length;i++,offset+=2){let s=Math.max(-1,Math.min(1,input[i]));s=s<0?s*0x8000:s*0x7FFF;output.setInt16(offset,s,true)}}
+        function writeString(view,offset,string){for(let i=0;i<string.length;i++){view.setUint8(offset+i,string.charCodeAt(i))}}
+    </script>
+</body>
+</html>
