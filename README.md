@@ -1,46 +1,55 @@
-# Armory Metal Woosh Generator
+# Armory VST
 
-<details>
-<summary><b>中文介绍</b></summary>
+Armory Metal Whoosh Generator 的 Windows x64 VST3 版本。此分支将网页版的三模块金属 FM Drone / Whoosh 概念带入 DAW：保留核心声源、设计、混音、随机、预设与同步逻辑；不包含网页端的独立音频导出功能。
 
-Armory 通过 FM + 动态滤波 + 多普勒模拟，三模块合成金属感呼啸音效，一键导出任意长度音频。
+## 1.0.0 功能
 
-1. 点击 **Initialize Console** 启动插件  
-2. 界面分四块：三个可开关声源模块 + 右侧频谱/总控/导出区  
-3. 模块左上黄点 = 电源。开启后：
-   - **Design** 区：可视化 ADSR（非线性）+ 参数旋钮  
-   - **Mixer** 区：三段 EQ、双滤波、混响、宽度、增益；双击旋钮复位  
-4. 底部 **Hold**（黄色）= 长按持续发声；切到 **Shot**（蓝色）= 只触发一次完整 ADSR  
-5. 右上角 🎲 = 随机参数；Preset 菜单可快速载入（默认 Sword）  
-6. 多模块同时开时：
-   - 总控 **Master Hold/Shot** 一键齐奏  
-   - 开启 **Sync**（蓝色旋转）即可锁速/锁时长，副模块跟随主模块  
-7. 导出：自选 Hold/Shot 模式 + 时长；点击 ✏️ 自定义文件名，内置计数器防重名  
+- VST3 乐器：立体声输出、接收 MIDI，并在 REAPER 中作为 `VST3i: Armory VST` 使用。
+- 三个可独立启用的 A / B / C 金属 FM 层：各层具有独立的金属比、双速音高摆动、时长、输出、高低通、混响和立体声宽度，全部参数均可由宿主自动化。
+- 单一钢琴窗配合左侧 A / B / C 拨杆：每层分别记忆锁定音高。左键短按完成一次 ADSR，长按持续至松开；右键锁定或取消多个琴键。收到 MIDI 时，有锁定音高的层演奏锁定集合，否则跟随原始 MIDI 音高。
+- 抽屉式迷你钢琴窗：可展开或收起；Zoom 滑杆、加减按钮与鼠标滚轮用于在完整音域中快速定位和精细操作。
+- Sword、Dagger、Greatsword、Katana、Chain 五种分层预设；随机化只影响当前层，Sync 仅由 Core 控制，副层跟随其速度和时长。
+- 参数值可直接输入、垂直拖拽调整、双击复位；锁定音符和全部参数随宿主工程保存与恢复。
 
-玩得开心！
-</details>
+## 本机构建
 
-<details open>
-<summary><b>English</b></summary>
+本项目默认使用 `D:/ArmoryVSTTools/JUCE`。工作区路径含中文时，JUCE 9 的 `juceaide` 可能在资源生成阶段异常退出；请从项目根目录运行下列脚本。脚本会通过 ASCII 路径入口构建，源码仍保留在工作区。
 
-Armory uses FM, dynamic filtering and Doppler simulation to craft metallic whoosh effects in the browser. Export any length in one click.
+```powershell
+.\scripts\build-debug.ps1
+```
 
-1. Press **Initialize Console** to start  
-2. Four sections: three optional generator modules + right-side spectrum, master transport & export panel  
-3. Yellow dot (top-left) = module power. When on:
-   - **Design**: visual ADSR with non-linear mapping + parameter sliders  
-   - **Mixer**: 3-band EQ, two filters, reverb, stereo width, gain; double-click any knob to reset  
-4. Bottom **Hold** (yellow) = sustain while held; switch to **Shot** (blue) for single ADSR trigger  
-5. 🎲 = randomize; Preset menu gives quick starting points (default: Sword)  
-6. With multiple modules active:
-   - Use **Master Hold/Shot** to play them together  
-   - Toggle **Sync** (blue rotate) to lock speed & duration—followers chase the master  
-7. Export: choose Hold/Shot mode & length; click ✏️ to name files. Built-in counter prevents duplicates  
+Debug VST3 输出目录：
 
-Have fun!
-</details>
+`D:\ArmoryVSTTools\build\ArmoryVST\ArmoryVST_artefacts\Debug\VST3\`
 
----<!-- https://wenwen149.github.io/Armory-Metal-Woosh-Generator/ -->
+生成可安装的优化版本：
 
-网址/Live page: https://wenwen149.github.io/Armory-Metal-Woosh-Generator/  
-License: MIT
+```powershell
+.\scripts\build-release.ps1
+```
+
+Release VST3 输出目录：
+
+`D:\ArmoryVSTTools\build\ArmoryVST-Release\ArmoryVST_artefacts\Release\VST3\`
+
+## 验证与宿主
+
+`pluginval` 严格级别 5 已通过；Release 版本也已在 REAPER 7.79 专用工程中成功创建 VST3i 实例。`tests\reaper\verify-armory-vst.lua` 仅面向 `D:\Reaper Project\Armory_VST_Test\Armory_VST_Test.rpp`，不会修改其它 REAPER 工程。
+
+无需启动 REAPER 的第一层验证可使用 JUCE AudioPluginHost：
+
+```powershell
+.\scripts\open-virtual-host.ps1
+```
+
+在 AudioPluginHost 的 VST3 扫描路径中加入脚本显示的 Release 目录，再将 **Armory VST** 放入图形并连接 MIDI 与音频输出。
+
+## 分支说明
+
+- `main`：网页版 Armory Metal Whoosh Generator。
+- `vst`：原生 JUCE / VST3 产品源码与本说明文档。
+
+## 授权
+
+本项目保留原始 MIT 许可证。JUCE 9 使用 AGPLv3 或商业授权；分发闭源或商业版本前，必须选择并满足相应授权条件。

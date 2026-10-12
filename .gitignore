@@ -1,0 +1,10 @@
+build/
+build-logs/
+.vs/
+.idea/
+cmake-build-*/
+*.user
+*.suo
+*.pdb
+*.VC.db
+tests/reaper/*.result
