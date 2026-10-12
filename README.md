@@ -19,7 +19,7 @@ Armory 通过 FM + 动态滤波 + 多普勒模拟，三模块合成金属感呼�
 
 ### Armory VST 1.0.0
 
-Windows x64 VST3 版本现已发布，适合在 DAW 中作为乐器使用。它保留三模块金属音色逻辑，并新增 A / B / C 独立音高记忆、钢琴窗锁定音高、抽屉式键盘与缩放操作。  
+Windows x64 VST3 版本现已发布，适合在 DAW 中作为乐器使用。它保留三模块金属音色逻辑，并新增 A / B / C 独立音高记忆、钢琴窗锁定音高、抽屉式键盘与缩放操作。
 [下载 Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
 
 玩得开心！
@@ -44,7 +44,7 @@ Armory uses FM, dynamic filtering and Doppler simulation to craft metallic whoos
 
 ### Armory VST 1.0.0
 
-The Windows x64 VST3 edition is now available for use as an instrument in your DAW. It keeps the three-layer metallic sound design and adds independent A / B / C pitch memory, piano-note locking, a drawer keyboard, and keyboard zoom controls.  
+The Windows x64 VST3 edition is now available for use as an instrument in your DAW. It keeps the three-layer metallic sound design and adds independent A / B / C pitch memory, piano-note locking, a drawer keyboard, and keyboard zoom controls.
 [Download Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
 
 Have fun!
