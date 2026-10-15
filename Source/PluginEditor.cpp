@@ -505,8 +505,8 @@ ArmoryLayerStrip::ArmoryLayerStrip (ArmoryVSTTestReleaseAudioProcessor& processo
     : processor (processorToUse), layer (layerIndex)
 {
     setLookAndFeel (&armoryLookAndFeel);
-    const auto webLayerName = juce::String::charToString (static_cast<juce::juce_wchar> ('A' + layer - 1));
-    title.setText (layer == 0 ? "CORE" : "LAYER " + webLayerName, juce::dontSendNotification);
+    const auto layerName = juce::String::charToString (static_cast<juce::juce_wchar> ('A' + layer));
+    title.setText ("LAYER " + layerName, juce::dontSendNotification);
     title.setFont (juce::FontOptions (20.0f, juce::Font::bold));
     title.setColour (juce::Label::textColourId, juce::Colour (0xffd4af37));
     addAndMakeVisible (title);
@@ -529,7 +529,7 @@ ArmoryLayerStrip::ArmoryLayerStrip (ArmoryVSTTestReleaseAudioProcessor& processo
     addAndMakeVisible (randomButton);
 
     syncButton.setButtonText ("SYNC");
-    syncButton.setTooltip ("Sync Speed and Time");
+    syncButton.setTooltip ("Sync Layer B / C Speed and Time to Layer A");
     syncButton.onClick = [this] { if (onSyncChanged != nullptr) onSyncChanged (syncButton.getToggleState()); };
     if (layer == 0)
         addAndMakeVisible (syncButton);
@@ -796,9 +796,9 @@ ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEdit
     title.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (title);
 
-    layerSelector.addItem ("A  ·  CORE", 1);
-    layerSelector.addItem ("B  ·  LAYER A", 2);
-    layerSelector.addItem ("C  ·  LAYER B", 3);
+    layerSelector.addItem ("A  ·  LAYER A", 1);
+    layerSelector.addItem ("B  ·  LAYER B", 2);
+    layerSelector.addItem ("C  ·  LAYER C", 3);
     layerSelector.setSelectedId (1);
     layerSelector.setTooltip ("Select the layer to audition and lock.");
     layerSelector.onChange = [this]
@@ -1080,7 +1080,7 @@ ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEdit
     : AudioProcessorEditor (&processorToUse), processor (processorToUse)
 {
     setLookAndFeel (&armoryLookAndFeel);
-    // Match the original rack before any Core sync gesture has captured a
+    // Match the original rack before any Layer A sync gesture has captured a
     // layer-specific value.
     preSyncSpeeds.fill (8.0f);
     preSyncTimes.fill (1.5f);
@@ -1225,7 +1225,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::refreshLockedNotes()
     const auto count = static_cast<int> (std::count (locks.begin(), locks.end(), true));
     static const std::array<juce::String, ArmoryVSTTestReleaseAudioProcessor::numberOfLayers> layerNames
     {
-        "A CORE", "B LAYER A", "C LAYER B"
+        "A LAYER A", "B LAYER B", "C LAYER C"
     };
     status.setText (layerNames[static_cast<size_t> (selectedLayer)]
                     + " | " + juce::String (count) + " locked | Click: ADSR shot | Hold: sustain | Right: lock",

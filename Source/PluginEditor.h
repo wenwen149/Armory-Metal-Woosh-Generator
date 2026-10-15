@@ -160,7 +160,7 @@ private:
     juce::TextButton masterTrigger { "MASTER HOLD" };
     juce::ToggleButton masterMode { "SHOT" };
     // Matches the page's initial Sword design values. These are only a
-    // fallback until enabling Core sync captures Layer A/B's live settings.
+    // fallback until enabling Layer A sync captures Layer B/C's live settings.
     std::array<float, 2> preSyncSpeeds { 8.0f, 8.0f };
     std::array<float, 2> preSyncTimes { 1.5f, 1.5f };
     std::array<std::vector<int>, ArmoryVSTTestReleaseAudioProcessor::numberOfLayers> heldTriggerNotes;

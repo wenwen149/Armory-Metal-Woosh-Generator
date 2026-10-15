@@ -9,7 +9,7 @@ Armory VST 是 Armory Metal Whoosh Generator 的 Windows x64 VST3 版本。它�
 - 单一钢琴窗配合 A / B / C 拨杆；每层独立记忆锁定音高。
 - 左键短按触发完整包络，长按持续至松开；右键可锁定或取消多个音高。
 - 抽屉式迷你钢琴窗，支持缩放、加减按钮和滚轮定位。
-- Sword、Dagger、Greatsword、Katana、Chain 五种预设；随机化作用于当前层，Core Sync 可让副层跟随速度与时长。
+- Sword、Dagger、Greatsword、Katana、Chain 五种预设；随机化作用于当前层，Layer A Sync 可让 Layer B / C 跟随速度与时长。
 - 参数可直接输入、拖拽调整或双击复位；工程重新打开后保留全部参数与锁定音高。
 
 [下载 Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
@@ -24,7 +24,7 @@ Armory VST is the Windows x64 VST3 edition of Armory Metal Whoosh Generator. It 
 - One piano keyboard with an A / B / C selector; each layer remembers its own locked notes.
 - A short left click plays a full envelope, while a hold sustains until release; right click locks or unlocks multiple notes.
 - A compact drawer keyboard with zoom, plus/minus controls, and wheel navigation.
-- Sword, Dagger, Greatsword, Katana, and Chain presets; randomise affects the current layer, while Core Sync lets the other layers follow speed and duration.
+- Sword, Dagger, Greatsword, Katana, and Chain presets; randomise affects the current layer, while Layer A Sync lets Layer B / C follow speed and duration.
 - Values can be typed, drag-adjusted, or reset with a double click; all parameters and locked notes are restored with the project.
 
 [Download Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
