@@ -1129,7 +1129,7 @@ ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEdit
     };
     masterPanel.addAndMakeVisible (infoButton);
 
-    infoPanel.setText ("ARMORY VST\nLicense: MIT\nBilibili: https://b23.tv/9YSBSWw",
+    infoPanel.setText ("ARMORY VST\nDeveloper: wenwen149\nLicense: MIT",
                        juce::dontSendNotification);
     infoPanel.setFont (juce::FontOptions (12.0f));
     infoPanel.setColour (juce::Label::textColourId, juce::Colour (0xffbbbbbb));

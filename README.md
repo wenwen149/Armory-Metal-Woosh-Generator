@@ -12,6 +12,8 @@ Armory VST 是 Armory Metal Whoosh Generator 的 Windows x64 VST3 版本。它�
 - Sword、Dagger、Greatsword、Katana、Chain 五种预设；随机化作用于当前层，Layer A Sync 可让 Layer B / C 跟随速度与时长。
 - 参数可直接输入、拖拽调整或双击复位；工程重新打开后保留全部参数与锁定音高。
 
+开发者：[@wenwen149](https://github.com/wenwen149)
+
 [下载 Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
 </details>
 
@@ -26,6 +28,8 @@ Armory VST is the Windows x64 VST3 edition of Armory Metal Whoosh Generator. It 
 - A compact drawer keyboard with zoom, plus/minus controls, and wheel navigation.
 - Sword, Dagger, Greatsword, Katana, and Chain presets; randomise affects the current layer, while Layer A Sync lets Layer B / C follow speed and duration.
 - Values can be typed, drag-adjusted, or reset with a double click; all parameters and locked notes are restored with the project.
+
+Developer: [@wenwen149](https://github.com/wenwen149)
 
 [Download Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
 </details>
