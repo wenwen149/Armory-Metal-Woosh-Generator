@@ -12,7 +12,7 @@ public:
     using LockCallback = std::function<bool (int midiNote)>;
 
     ArmoryPianoKeyboard();
-    void setLockedNotes (const ArmoryVSTTestReleaseAudioProcessor::LockedNoteArray& notes);
+    void setLockedNotes (const ArmoryVSTAudioProcessor::LockedNoteArray& notes);
     void setWhiteKeyWidth (float width);
     float getWhiteKeyWidth() const noexcept { return whiteKeyWidth; }
     int getRequiredWidth() const noexcept;
@@ -37,7 +37,7 @@ private:
     void trigger (int midiNote, bool isNoteOn);
     void rebuildKeyBounds();
 
-    ArmoryVSTTestReleaseAudioProcessor::LockedNoteArray lockedNotes {};
+    ArmoryVSTAudioProcessor::LockedNoteArray lockedNotes {};
     std::vector<KeyBounds> keyBounds;
     int pressedNote = -1;
     double pressStartedMilliseconds = 0.0;
@@ -64,7 +64,7 @@ public:
     using SyncCallback = std::function<void (bool enabled)>;
     using ControlCallback = std::function<void (int layer, const juce::String& parameter, float value)>;
 
-    ArmoryLayerStrip (ArmoryVSTTestReleaseAudioProcessor&, int layerIndex);
+    ArmoryLayerStrip (ArmoryVSTAudioProcessor&, int layerIndex);
     void paint (juce::Graphics&) override;
     void resized() override;
     void setSyncEnabled (bool enabled);
@@ -84,7 +84,7 @@ private:
     void configureSlider (int index, const juce::String& suffix, const juce::String& label,
                           double minimum, double maximum, double interval, bool rotary);
 
-    ArmoryVSTTestReleaseAudioProcessor& processor;
+    ArmoryVSTAudioProcessor& processor;
     int layer = 0;
     bool shotMode = false;
     juce::Label title;
@@ -104,24 +104,24 @@ private:
 class ArmorySpectrum final : public juce::Component
 {
 public:
-    explicit ArmorySpectrum (ArmoryVSTTestReleaseAudioProcessor& owner) : processor (owner), fft (11), window (2048, juce::dsp::WindowingFunction<float>::hann) {}
+    explicit ArmorySpectrum (ArmoryVSTAudioProcessor& owner) : processor (owner), fft (11), window (2048, juce::dsp::WindowingFunction<float>::hann) {}
     void refresh();
     void paint (juce::Graphics&) override;
 
 private:
-    ArmoryVSTTestReleaseAudioProcessor& processor;
+    ArmoryVSTAudioProcessor& processor;
     juce::dsp::FFT fft;
     juce::dsp::WindowingFunction<float> window;
     std::array<float, 4096> fftData {};
     std::array<float, 160> displayBins {};
 };
 
-class ArmoryVSTTestReleaseAudioProcessorEditor final : public juce::AudioProcessorEditor,
+class ArmoryVSTAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                                        private juce::Timer
 {
 public:
-    explicit ArmoryVSTTestReleaseAudioProcessorEditor (ArmoryVSTTestReleaseAudioProcessor&);
-    ~ArmoryVSTTestReleaseAudioProcessorEditor() override = default;
+    explicit ArmoryVSTAudioProcessorEditor (ArmoryVSTAudioProcessor&);
+    ~ArmoryVSTAudioProcessorEditor() override = default;
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -144,14 +144,14 @@ private:
     void triggerMaster (bool isDown);
     void updateKeyboardZoomFromX (int x);
 
-    ArmoryVSTTestReleaseAudioProcessor& processor;
+    ArmoryVSTAudioProcessor& processor;
     juce::Label title;
     juce::Label status;
     ArmoryLayerSelector layerSelector;
     juce::TextButton clearLocksButton { "CLEAR LOCKS" };
     juce::Viewport keyboardViewport;
     ArmoryPianoKeyboard keyboard;
-    std::array<std::unique_ptr<ArmoryLayerStrip>, ArmoryVSTTestReleaseAudioProcessor::numberOfLayers> layerStrips;
+    std::array<std::unique_ptr<ArmoryLayerStrip>, ArmoryVSTAudioProcessor::numberOfLayers> layerStrips;
     juce::Component masterPanel;
     juce::Label masterBrand;
     juce::TextButton infoButton { "i" };
@@ -163,10 +163,11 @@ private:
     // fallback until enabling Layer A sync captures Layer B/C's live settings.
     std::array<float, 2> preSyncSpeeds { 8.0f, 8.0f };
     std::array<float, 2> preSyncTimes { 1.5f, 1.5f };
-    std::array<std::vector<int>, ArmoryVSTTestReleaseAudioProcessor::numberOfLayers> heldTriggerNotes;
+    std::array<std::vector<int>, ArmoryVSTAudioProcessor::numberOfLayers> heldTriggerNotes;
     bool speedTimeSynced = false;
     bool isApplyingPreset = false;
     int selectedLayer = 0;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArmoryVSTTestReleaseAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArmoryVSTAudioProcessorEditor)
 };
+

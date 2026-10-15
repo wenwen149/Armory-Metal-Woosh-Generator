@@ -159,7 +159,7 @@ void ArmoryVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int s
     }
 }
 
-ArmoryVSTTestReleaseAudioProcessor::ArmoryVSTTestReleaseAudioProcessor()
+ArmoryVSTAudioProcessor::ArmoryVSTAudioProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       parameters (*this, nullptr, "ArmoryState", createParameterLayout())
 {
@@ -201,7 +201,7 @@ ArmoryVSTTestReleaseAudioProcessor::ArmoryVSTTestReleaseAudioProcessor()
     }
 }
 
-juce::AudioProcessorValueTreeState::ParameterLayout ArmoryVSTTestReleaseAudioProcessor::createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout ArmoryVSTAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     for (int layer = 0; layer < numberOfLayers; ++layer)
@@ -229,7 +229,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ArmoryVSTTestReleaseAudioPro
     return layout;
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void ArmoryVSTAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     for (auto& synthesiser : synthesisers)
@@ -309,12 +309,12 @@ void ArmoryVSTTestReleaseAudioProcessor::prepareToPlay (double sampleRate, int s
     masterLimiter.setRelease (10.0f);
 }
 
-bool ArmoryVSTTestReleaseAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool ArmoryVSTAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
@@ -548,7 +548,7 @@ void ArmoryVSTTestReleaseAudioProcessor::processBlock (juce::AudioBuffer<float>&
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::copyAnalyserSamples (std::array<float, 2048>& destination) const
+void ArmoryVSTAudioProcessor::copyAnalyserSamples (std::array<float, 2048>& destination) const
 {
     const auto writePosition = analyserWritePosition.load (std::memory_order_acquire);
     for (size_t index = 0; index < destination.size(); ++index)
@@ -559,7 +559,7 @@ void ArmoryVSTTestReleaseAudioProcessor::copyAnalyserSamples (std::array<float, 
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::enqueueKeyboardNote (int layer, int midiNote, bool isNoteOn)
+void ArmoryVSTAudioProcessor::enqueueKeyboardNote (int layer, int midiNote, bool isNoteOn)
 {
     if (! juce::isPositiveAndBelow (layer, numberOfLayers) || ! juce::isPositiveAndBelow (midiNote, 128))
         return;
@@ -574,7 +574,7 @@ void ArmoryVSTTestReleaseAudioProcessor::enqueueKeyboardNote (int layer, int mid
         keyboard.noteOff (1, midiNote, 0.0f);
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::enqueueKeyboardShot (int layer, int midiNote, float gateSeconds)
+void ArmoryVSTAudioProcessor::enqueueKeyboardShot (int layer, int midiNote, float gateSeconds)
 {
     if (! juce::isPositiveAndBelow (layer, numberOfLayers) || ! juce::isPositiveAndBelow (midiNote, 128))
         return;
@@ -587,7 +587,7 @@ void ArmoryVSTTestReleaseAudioProcessor::enqueueKeyboardShot (int layer, int mid
     keyboardStates[layerIndex].noteOn (1, midiNote, 1.0f);
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::scheduleKeyboardRelease (int layer, int midiNote, float gateSeconds)
+void ArmoryVSTAudioProcessor::scheduleKeyboardRelease (int layer, int midiNote, float gateSeconds)
 {
     if (! juce::isPositiveAndBelow (layer, numberOfLayers) || ! juce::isPositiveAndBelow (midiNote, 128))
         return;
@@ -597,7 +597,7 @@ void ArmoryVSTTestReleaseAudioProcessor::scheduleKeyboardRelease (int layer, int
         std::memory_order_release);
 }
 
-bool ArmoryVSTTestReleaseAudioProcessor::toggleLayerLockedNote (int layer, int midiNote)
+bool ArmoryVSTAudioProcessor::toggleLayerLockedNote (int layer, int midiNote)
 {
     if (! juce::isPositiveAndBelow (layer, numberOfLayers) || ! juce::isPositiveAndBelow (midiNote, 128))
         return false;
@@ -608,7 +608,7 @@ bool ArmoryVSTTestReleaseAudioProcessor::toggleLayerLockedNote (int layer, int m
     return newValue;
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::setLayerLockedNote (int layer, int midiNote)
+void ArmoryVSTAudioProcessor::setLayerLockedNote (int layer, int midiNote)
 {
     if (! juce::isPositiveAndBelow (layer, numberOfLayers) || ! juce::isPositiveAndBelow (midiNote, 128))
         return;
@@ -617,7 +617,7 @@ void ArmoryVSTTestReleaseAudioProcessor::setLayerLockedNote (int layer, int midi
     lockedNotes[static_cast<size_t> (layer)][static_cast<size_t> (midiNote)].store (true, std::memory_order_relaxed);
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::clearLayerLockedNotes (int layer)
+void ArmoryVSTAudioProcessor::clearLayerLockedNotes (int layer)
 {
     if (! juce::isPositiveAndBelow (layer, numberOfLayers))
         return;
@@ -626,7 +626,7 @@ void ArmoryVSTTestReleaseAudioProcessor::clearLayerLockedNotes (int layer)
         note.store (false, std::memory_order_relaxed);
 }
 
-ArmoryVSTTestReleaseAudioProcessor::LockedNoteArray ArmoryVSTTestReleaseAudioProcessor::getLayerLockedNotes (int layer) const
+ArmoryVSTAudioProcessor::LockedNoteArray ArmoryVSTAudioProcessor::getLayerLockedNotes (int layer) const
 {
     LockedNoteArray result {};
     if (! juce::isPositiveAndBelow (layer, numberOfLayers))
@@ -638,7 +638,7 @@ ArmoryVSTTestReleaseAudioProcessor::LockedNoteArray ArmoryVSTTestReleaseAudioPro
     return result;
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::transformMidiForLayer (int layer, const juce::MidiBuffer& input, juce::MidiBuffer& output)
+void ArmoryVSTAudioProcessor::transformMidiForLayer (int layer, const juce::MidiBuffer& input, juce::MidiBuffer& output)
 {
     auto& triggeredForLayer = activeTriggeredNotes[static_cast<size_t> (layer)];
 
@@ -688,7 +688,7 @@ void ArmoryVSTTestReleaseAudioProcessor::transformMidiForLayer (int layer, const
     }
 }
 
-juce::String ArmoryVSTTestReleaseAudioProcessor::serialiseLockedNotes (int layer) const
+juce::String ArmoryVSTAudioProcessor::serialiseLockedNotes (int layer) const
 {
     juce::StringArray notes;
     for (int note = 0; note < 128; ++note)
@@ -698,7 +698,7 @@ juce::String ArmoryVSTTestReleaseAudioProcessor::serialiseLockedNotes (int layer
     return notes.joinIntoString (",");
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::restoreLockedNotes (int layer, const juce::String& value)
+void ArmoryVSTAudioProcessor::restoreLockedNotes (int layer, const juce::String& value)
 {
     const auto tokens = juce::StringArray::fromTokens (value, ",", "");
     for (int note = 0; note < 128; ++note)
@@ -708,12 +708,12 @@ void ArmoryVSTTestReleaseAudioProcessor::restoreLockedNotes (int layer, const ju
     }
 }
 
-juce::AudioProcessorEditor* ArmoryVSTTestReleaseAudioProcessor::createEditor()
+juce::AudioProcessorEditor* ArmoryVSTAudioProcessor::createEditor()
 {
-    return new ArmoryVSTTestReleaseAudioProcessorEditor (*this);
+    return new ArmoryVSTAudioProcessorEditor (*this);
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::getStateInformation (juce::MemoryBlock& destinationData)
+void ArmoryVSTAudioProcessor::getStateInformation (juce::MemoryBlock& destinationData)
 {
     if (auto state = parameters.copyState(); state.isValid())
     {
@@ -730,7 +730,7 @@ void ArmoryVSTTestReleaseAudioProcessor::getStateInformation (juce::MemoryBlock&
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void ArmoryVSTAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (const auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (parameters.state.getType()))
@@ -752,5 +752,6 @@ void ArmoryVSTTestReleaseAudioProcessor::setStateInformation (const void* data, 
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new ArmoryVSTTestReleaseAudioProcessor();
+    return new ArmoryVSTAudioProcessor();
 }
+

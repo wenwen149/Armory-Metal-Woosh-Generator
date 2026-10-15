@@ -322,7 +322,7 @@ int ArmoryPianoKeyboard::getRequiredWidth() const noexcept
     return juce::roundToInt (75.0f * whiteKeyWidth);
 }
 
-void ArmoryPianoKeyboard::setLockedNotes (const ArmoryVSTTestReleaseAudioProcessor::LockedNoteArray& notes)
+void ArmoryPianoKeyboard::setLockedNotes (const ArmoryVSTAudioProcessor::LockedNoteArray& notes)
 {
     lockedNotes = notes;
     repaint();
@@ -501,7 +501,7 @@ void ArmoryLayerSelector::mouseDown (const juce::MouseEvent& event)
     }
 }
 
-ArmoryLayerStrip::ArmoryLayerStrip (ArmoryVSTTestReleaseAudioProcessor& processorToUse, int layerIndex)
+ArmoryLayerStrip::ArmoryLayerStrip (ArmoryVSTAudioProcessor& processorToUse, int layerIndex)
     : processor (processorToUse), layer (layerIndex)
 {
     setLookAndFeel (&armoryLookAndFeel);
@@ -786,7 +786,7 @@ void ArmoryLayerStrip::resized()
 }
 
 #if 0
-ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEditor (ArmoryVSTTestReleaseAudioProcessor& processorToUse)
+ArmoryVSTAudioProcessorEditor::ArmoryVSTAudioProcessorEditor (ArmoryVSTAudioProcessor& processorToUse)
     : AudioProcessorEditor (&processorToUse),
       processor (processorToUse)
 {
@@ -889,23 +889,23 @@ ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEdit
     setSize (880, 410);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::refreshLockedNotes()
+void ArmoryVSTAudioProcessorEditor::refreshLockedNotes()
 {
     keyboard.setLockedNotes (processor.getLayerLockedNotes (selectedLayer));
 }
 
-juce::String ArmoryVSTTestReleaseAudioProcessorEditor::selectedParameterId (const juce::String& suffix) const
+juce::String ArmoryVSTAudioProcessorEditor::selectedParameterId (const juce::String& suffix) const
 {
     return juce::String::charToString (static_cast<juce::juce_wchar> ('A' + selectedLayer)) + suffix;
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::writeSelectedParameter (const juce::String& suffix, float value)
+void ArmoryVSTAudioProcessorEditor::writeSelectedParameter (const juce::String& suffix, float value)
 {
     if (auto* parameter = dynamic_cast<juce::RangedAudioParameter*> (processor.parameters.getParameter (selectedParameterId (suffix))))
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::refreshLayerControls()
+void ArmoryVSTAudioProcessorEditor::refreshLayerControls()
 {
     const auto read = [this] (const juce::String& suffix)
     {
@@ -922,7 +922,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::refreshLayerControls()
     gainControl.setValue (read (displayedControlIds[3]), juce::dontSendNotification);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::refreshControlPage()
+void ArmoryVSTAudioProcessorEditor::refreshControlPage()
 {
     struct Page
     {
@@ -956,7 +956,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::refreshControlPage()
     refreshLayerControls();
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::applySelectedPreset (int presetId)
+void ArmoryVSTAudioProcessorEditor::applySelectedPreset (int presetId)
 {
     struct Preset
     {
@@ -994,7 +994,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::applySelectedPreset (int presetId
     refreshLayerControls();
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::paint (juce::Graphics& graphics)
+void ArmoryVSTAudioProcessorEditor::paint (juce::Graphics& graphics)
 {
     graphics.fillAll (juce::Colour (0xff090909));
     graphics.setColour (juce::Colour (0xff2b2b2b));
@@ -1004,7 +1004,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::paint (juce::Graphics& graphics)
     graphics.drawLine (20.0f, 247.0f, static_cast<float> (getWidth() - 20), 247.0f, 1.0f);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::resized()
+void ArmoryVSTAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced (24);
     auto header = area.removeFromTop (48);
@@ -1076,7 +1076,7 @@ void ArmorySpectrum::paint (juce::Graphics& graphics)
     graphics.drawText ("PAZ | REALTIME SPECTRUM", area.toNearestInt(), juce::Justification::centredTop, false);
 }
 
-ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEditor (ArmoryVSTTestReleaseAudioProcessor& processorToUse)
+ArmoryVSTAudioProcessorEditor::ArmoryVSTAudioProcessorEditor (ArmoryVSTAudioProcessor& processorToUse)
     : AudioProcessorEditor (&processorToUse), processor (processorToUse)
 {
     setLookAndFeel (&armoryLookAndFeel);
@@ -1091,7 +1091,7 @@ ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEdit
     // part of the master strip. Keep this legacy label out of the layout.
     title.setVisible (false);
 
-    for (int layer = 0; layer < ArmoryVSTTestReleaseAudioProcessor::numberOfLayers; ++layer)
+    for (int layer = 0; layer < ArmoryVSTAudioProcessor::numberOfLayers; ++layer)
     {
         auto strip = std::make_unique<ArmoryLayerStrip> (processor, layer);
         strip->onPresetChanged = [this] (int changedLayer)
@@ -1213,17 +1213,17 @@ ArmoryVSTTestReleaseAudioProcessorEditor::ArmoryVSTTestReleaseAudioProcessorEdit
     setSize (1500, 1000);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::timerCallback()
+void ArmoryVSTAudioProcessorEditor::timerCallback()
 {
     spectrum.refresh();
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::refreshLockedNotes()
+void ArmoryVSTAudioProcessorEditor::refreshLockedNotes()
 {
     const auto locks = processor.getLayerLockedNotes (selectedLayer);
     keyboard.setLockedNotes (locks);
     const auto count = static_cast<int> (std::count (locks.begin(), locks.end(), true));
-    static const std::array<juce::String, ArmoryVSTTestReleaseAudioProcessor::numberOfLayers> layerNames
+    static const std::array<juce::String, ArmoryVSTAudioProcessor::numberOfLayers> layerNames
     {
         "A LAYER A", "B LAYER B", "C LAYER C"
     };
@@ -1232,24 +1232,24 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::refreshLockedNotes()
                     juce::dontSendNotification);
 }
 
-juce::String ArmoryVSTTestReleaseAudioProcessorEditor::selectedParameterId (const juce::String& suffix) const
+juce::String ArmoryVSTAudioProcessorEditor::selectedParameterId (const juce::String& suffix) const
 {
     return juce::String::charToString (static_cast<juce::juce_wchar> ('A' + selectedLayer)) + suffix;
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::writeSelectedParameter (const juce::String& suffix, float value)
+void ArmoryVSTAudioProcessorEditor::writeSelectedParameter (const juce::String& suffix, float value)
 {
     writeLayerParameter (selectedLayer, suffix, value);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::writeLayerParameter (int layer, const juce::String& suffix, float value)
+void ArmoryVSTAudioProcessorEditor::writeLayerParameter (int layer, const juce::String& suffix, float value)
 {
     const auto id = juce::String::charToString (static_cast<juce::juce_wchar> ('A' + layer)) + suffix;
     if (auto* parameter = dynamic_cast<juce::RangedAudioParameter*> (processor.parameters.getParameter (id)))
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::applyPreset (int layer, int presetId)
+void ArmoryVSTAudioProcessorEditor::applyPreset (int layer, int presetId)
 {
     struct Preset
     {
@@ -1284,7 +1284,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::applyPreset (int layer, int prese
     juce::ignoreUnused (preset.pitch);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::randomiseLayer (int layer)
+void ArmoryVSTAudioProcessorEditor::randomiseLayer (int layer)
 {
     juce::Random random;
     const auto range = [&random] (float minimum, float maximum) { return minimum + random.nextFloat() * (maximum - minimum); };
@@ -1298,7 +1298,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::randomiseLayer (int layer)
     layerStrips[static_cast<size_t> (layer)]->setPresetDisplayCustom();
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::setSpeedTimeSync (bool enabled)
+void ArmoryVSTAudioProcessorEditor::setSpeedTimeSync (bool enabled)
 {
     const auto read = [this] (int layer, const juce::String& suffix)
     {
@@ -1333,7 +1333,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::setSpeedTimeSync (bool enabled)
     layerStrips[0]->setSyncEnabled (enabled);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::handleLayerControlChange (int layer, const juce::String& parameter, float value)
+void ArmoryVSTAudioProcessorEditor::handleLayerControlChange (int layer, const juce::String& parameter, float value)
 {
     if (! isApplyingPreset)
         layerStrips[static_cast<size_t> (layer)]->setPresetDisplayCustom();
@@ -1347,7 +1347,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::handleLayerControlChange (int lay
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::triggerLayer (int layer, bool isDown, bool isShot)
+void ArmoryVSTAudioProcessorEditor::triggerLayer (int layer, bool isDown, bool isShot)
 {
     // The original web rack ignores both individual and master trigger gestures
     // for a powered-off module.  Do this before queuing any MIDI so toggling a
@@ -1396,14 +1396,14 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::triggerLayer (int layer, bool isD
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::triggerMaster (bool isDown)
+void ArmoryVSTAudioProcessorEditor::triggerMaster (bool isDown)
 {
     const auto isShot = masterMode.getToggleState();
-    for (int layer = 0; layer < ArmoryVSTTestReleaseAudioProcessor::numberOfLayers; ++layer)
+    for (int layer = 0; layer < ArmoryVSTAudioProcessor::numberOfLayers; ++layer)
         triggerLayer (layer, isDown, isShot);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::paint (juce::Graphics& graphics)
+void ArmoryVSTAudioProcessorEditor::paint (juce::Graphics& graphics)
 {
     graphics.fillAll (juce::Colour (0xff050505));
     graphics.setColour (juce::Colour (0xff333333));
@@ -1459,7 +1459,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::paint (juce::Graphics& graphics)
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::updateKeyboardZoomFromX (int x)
+void ArmoryVSTAudioProcessorEditor::updateKeyboardZoomFromX (int x)
 {
     auto footer = getLocalBounds().reduced (12).removeFromBottom (126);
     auto header = footer.removeFromTop (34);
@@ -1486,7 +1486,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::updateKeyboardZoomFromX (int x)
     repaint (zoomBounds);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::mouseDown (const juce::MouseEvent& event)
+void ArmoryVSTAudioProcessorEditor::mouseDown (const juce::MouseEvent& event)
 {
     const auto drawerOpen = keyboardViewport.isVisible();
     auto footer = getLocalBounds().reduced (12).removeFromBottom (drawerOpen ? 126 : 34);
@@ -1532,7 +1532,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::mouseDown (const juce::MouseEvent
         updateKeyboardZoomFromX (event.x);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::mouseDrag (const juce::MouseEvent& event)
+void ArmoryVSTAudioProcessorEditor::mouseDrag (const juce::MouseEvent& event)
 {
     if (keyboardViewport.isVisible())
     {
@@ -1551,11 +1551,11 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::mouseDrag (const juce::MouseEvent
     }
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::mouseUp (const juce::MouseEvent&)
+void ArmoryVSTAudioProcessorEditor::mouseUp (const juce::MouseEvent&)
 {
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::mouseWheelMove (const juce::MouseEvent& event,
+void ArmoryVSTAudioProcessorEditor::mouseWheelMove (const juce::MouseEvent& event,
                                                                const juce::MouseWheelDetails& wheel)
 {
     if (keyboardViewport.isVisible() && keyboardViewport.getLocalBounds().contains (event.getEventRelativeTo (&keyboardViewport).getPosition()))
@@ -1570,7 +1570,7 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::mouseWheelMove (const juce::Mouse
     juce::AudioProcessorEditor::mouseWheelMove (event, wheel);
 }
 
-void ArmoryVSTTestReleaseAudioProcessorEditor::resized()
+void ArmoryVSTAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds().reduced (12);
 
@@ -1621,3 +1621,4 @@ void ArmoryVSTTestReleaseAudioProcessorEditor::resized()
     masterTrigger.setBounds (triggerRow.reduced (0, 5));
     infoPanel.setBounds (masterPanel.getLocalBounds().reduced (20).withHeight (128).withY (48));
 }
+

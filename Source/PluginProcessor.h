@@ -53,7 +53,7 @@ private:
     bool releasing = false;
 };
 
-class ArmoryVSTTestReleaseAudioProcessor final : public juce::AudioProcessor
+class ArmoryVSTAudioProcessor final : public juce::AudioProcessor
 {
 public:
     static constexpr int numberOfLayers = 3;
@@ -63,8 +63,8 @@ public:
     static constexpr int maxPianoPolyphony = 128;
     using LockedNoteArray = std::array<bool, 128>;
 
-    ArmoryVSTTestReleaseAudioProcessor();
-    ~ArmoryVSTTestReleaseAudioProcessor() override = default;
+    ArmoryVSTAudioProcessor();
+    ~ArmoryVSTAudioProcessor() override = default;
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
@@ -160,5 +160,6 @@ private:
     std::atomic<juce::uint32> analyserWritePosition { 0 };
     double currentSampleRate = 44100.0;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArmoryVSTTestReleaseAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ArmoryVSTAudioProcessor)
 };
+
