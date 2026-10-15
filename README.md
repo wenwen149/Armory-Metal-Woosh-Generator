@@ -13,7 +13,11 @@ Armory VST 是一款跨平台 VST3 创意合成器，用于在 Windows 与 macOS
 -一个全局示波器便于检查频谱特征。
 - 支持 Windows x64 VST3，以及 macOS VST3（Apple Silicon 与 Intel 分别提供下载）。
 
-使用教程：你可以在bilibili搜索 BV1p8qSBiEu5 来查看我制作的使用教程，VST版本是网页版的更新，功能有些许差异，但大部分还是相同的。
+使用教程：你可以到：
+
+https://www.bilibili.com/video/BV1p8qSBiEu5?vd_source=fb3ea98f455db90f4e19073fb488ebc5
+
+查看我制作的使用教程，VST版本是网页版的更新，有些许差异，但大部分功能还是相同的。
 
 请在 [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest) 下载适合你的版本。
 
