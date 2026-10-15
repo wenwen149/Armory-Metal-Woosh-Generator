@@ -17,7 +17,7 @@ Armory VST 是 Armory Metal Whoosh Generator 的跨平台 VST3 乐器版本，�
 在 [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest) 中按需下载：
 
 - Windows x64 VST3
-- macOS Universal VST3（Apple Silicon 与 Intel）
+- macOS VST3（Apple Silicon 与 Intel 分别提供下载）
 </details>
 
 <details open>
@@ -37,7 +37,7 @@ Developer: [@wenwen149](https://github.com/wenwen149)
 Download the package you need from [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest):
 
 - Windows x64 VST3
-- macOS Universal VST3 (Apple Silicon and Intel)
+- macOS VST3, with separate downloads for Apple Silicon and Intel Macs
 </details>
 
 License: MIT
