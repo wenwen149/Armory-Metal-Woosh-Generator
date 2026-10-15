@@ -3,13 +3,17 @@
 <details>
 <summary><b>中文介绍</b></summary>
 
-Armory VST 是一款跨平台 VST3 乐器，用于在 Windows 与 macOS DAW 中生成三层金属 FM Whoosh 音色。
+Armory VST 是一款跨平台 VST3 创意合成器，用于在 Windows 与 macOS DAW 中生成至多三层金属 FM Whoosh 音色。它全部采用实时合成，非常轻量化，搭配简单易用的设计与混音模块可以快速得到丰富而独特的声音纹理，可直接使用或作为进一步设计的素材。
 
-- 三个独立的 A / B / C 音色层，支持混音、随机化、预设与同步。
+- 三个独立的 A / B / C 音色层，支持PWR独立开关，参数调节，简单混音、随机化、预设与同步。
 - 共享钢琴窗配合 A / B / C 选择器；每层独立记忆锁定音高。
 - 左键短按触发完整包络，长按持续至松开；右键可锁定或取消多个音高。
+-通过胶囊滑块切换shot和hold模式，便于试听单个模块与整体声音。
 - 抽屉式迷你键盘，支持缩放、加减按钮和滚轮定位。
+-一个全局示波器便于检查频谱特征。
 - 支持 Windows x64 VST3，以及 macOS VST3（Apple Silicon 与 Intel 分别提供下载）。
+
+使用教程：你可以在bilibili搜索 BV1p8qSBiEu5 来查看我制作的使用教程，VST版本是网页版的更新，功能有些许差异，但大部分还是相同的。
 
 请在 [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest) 下载适合你的版本。
 
