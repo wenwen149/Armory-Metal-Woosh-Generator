@@ -29,13 +29,17 @@ https://www.bilibili.com/video/BV1p8qSBiEu5?vd_source=fb3ea98f455db90f4e19073fb4
 <details open>
 <summary><b>English</b></summary>
 
-Armory VST is a cross-platform VST3 instrument for creating three-layer metallic FM whoosh sounds in Windows and macOS DAWs.
+Armory VST is a cross-platform VST3 creative synthesizer for generating up to three layers of metallic FM whoosh sounds in Windows and macOS DAWs. It uses real-time synthesis and remains highly lightweight, while its approachable design and mixing modules make it quick to create rich, distinctive sound textures for immediate use or further sound design.
 
-- Three independent A / B / C sound layers with mixing, randomisation, presets, and sync.
+- Three independent A / B / C sound layers, each with its own PWR switch, parameter controls, straightforward mixing, randomisation, presets, and sync.
 - One shared piano keyboard with an A / B / C selector; each layer remembers its own locked notes.
 - A short left click plays a full envelope, while a hold sustains until release; right click locks or unlocks multiple notes.
+- A capsule slider switches between Shot and Hold modes, making it easy to audition an individual layer or the complete sound.
 - A compact drawer keyboard with zoom, plus/minus controls, and wheel navigation.
+- A global real-time spectrum display for checking spectral characteristics.
 - Available as Windows x64 VST3 and macOS VST3, with separate downloads for Apple Silicon and Intel Macs.
+
+Tutorial: Watch the [video guide](https://www.bilibili.com/video/BV1p8qSBiEu5?vd_source=fb3ea98f455db90f4e19073fb488ebc5). The VST edition updates the web version and has some differences, but most functionality remains the same.
 
 Download the package you need from [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest).
 
