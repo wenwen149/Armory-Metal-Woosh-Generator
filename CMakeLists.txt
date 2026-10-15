@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(ARMORY_JUCE_PATH "D:/ArmoryVSTTools/JUCE" CACHE PATH "Path to the JUCE source tree")
+set(ARMORY_JUCE_PATH "" CACHE PATH "Path to the JUCE source tree")
 
 if (NOT EXISTS "${ARMORY_JUCE_PATH}/CMakeLists.txt")
     message(FATAL_ERROR "JUCE was not found. Set ARMORY_JUCE_PATH to a JUCE source checkout.")

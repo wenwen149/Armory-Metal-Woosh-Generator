@@ -3,7 +3,7 @@
 <details>
 <summary><b>中文介绍</b></summary>
 
-Armory VST 是 Armory Metal Whoosh Generator 的 Windows x64 VST3 版本。它将三模块金属 FM Whoosh 音色带入 DAW，并保留核心设计、混音、随机、预设与同步逻辑。
+Armory VST 是 Armory Metal Whoosh Generator 的跨平台 VST3 乐器版本，适用于 Windows 与 macOS DAW。它将三模块金属 FM Whoosh 音色带入宿主，并保留核心设计、混音、随机、预设与同步逻辑。
 
 - 三个可独立启用的 A / B / C 金属音色层。
 - 单一钢琴窗配合 A / B / C 拨杆；每层独立记忆锁定音高。
@@ -14,13 +14,16 @@ Armory VST 是 Armory Metal Whoosh Generator 的 Windows x64 VST3 版本。它�
 
 开发者：[@wenwen149](https://github.com/wenwen149)
 
-[下载 Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
+在 [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest) 中按需下载：
+
+- Windows x64 VST3
+- macOS Universal VST3（Apple Silicon 与 Intel）
 </details>
 
 <details open>
 <summary><b>English</b></summary>
 
-Armory VST is the Windows x64 VST3 edition of Armory Metal Whoosh Generator. It brings the three-layer metallic FM whoosh sound into your DAW while retaining the core design, mixing, randomisation, preset, and sync workflow.
+Armory VST is the cross-platform VST3 instrument edition of Armory Metal Whoosh Generator for Windows and macOS DAWs. It brings the three-layer metallic FM whoosh sound into your host while retaining the core design, mixing, randomisation, preset, and sync workflow.
 
 - Three independently enabled A / B / C metallic sound layers.
 - One piano keyboard with an A / B / C selector; each layer remembers its own locked notes.
@@ -31,7 +34,10 @@ Armory VST is the Windows x64 VST3 edition of Armory Metal Whoosh Generator. It 
 
 Developer: [@wenwen149](https://github.com/wenwen149)
 
-[Download Armory VST 1.0.0](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/tag/v1.0.0)
+Download the package you need from [Releases](https://github.com/wenwen149/Armory-Metal-Woosh-Generator/releases/latest):
+
+- Windows x64 VST3
+- macOS Universal VST3 (Apple Silicon and Intel)
 </details>
 
 License: MIT
