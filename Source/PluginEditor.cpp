@@ -1084,7 +1084,7 @@ ArmoryVSTAudioProcessorEditor::ArmoryVSTAudioProcessorEditor (ArmoryVSTAudioProc
     // layer-specific value.
     preSyncSpeeds.fill (8.0f);
     preSyncTimes.fill (1.5f);
-    title.setText ("THE ARMORY  v1.2  ·  VST", juce::dontSendNotification);
+    title.setText ("THE ARMORY  v1.0.1  ·  VST", juce::dontSendNotification);
     title.setFont (juce::FontOptions (22.0f, juce::Font::bold));
     title.setColour (juce::Label::textColourId, juce::Colour (0xffd4af37));
     // The web console has no separate application title bar; the branding is
@@ -1113,7 +1113,7 @@ ArmoryVSTAudioProcessorEditor::ArmoryVSTAudioProcessorEditor (ArmoryVSTAudioProc
     }
 
     addAndMakeVisible (masterPanel);
-    masterBrand.setText ("THE ARMORY  v1.2", juce::dontSendNotification);
+    masterBrand.setText ("THE ARMORY  v1.0.1", juce::dontSendNotification);
     masterBrand.setFont (juce::FontOptions (24.0f, juce::Font::bold));
     masterBrand.setColour (juce::Label::textColourId, juce::Colour (0xffd4af37));
     masterBrand.setJustificationType (juce::Justification::centred);
