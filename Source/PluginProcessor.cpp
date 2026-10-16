@@ -232,6 +232,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ArmoryVSTAudioProcessor::cre
 void ArmoryVSTAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
+    reverbTailSamplesRemaining.fill (0);
     for (auto& synthesiser : synthesisers)
         synthesiser.setCurrentPlaybackSampleRate (sampleRate);
 
@@ -242,8 +243,12 @@ void ArmoryVSTAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
         motionSpeed.setCurrentAndTargetValue (speedParameters[static_cast<size_t> (layer)]->load());
     }
 
+    // Keep the sound-design chain stereo internally. A mono host bus is
+    // downmixed only at the final output stage, so Width = 0 and a negotiated
+    // mono output layout are both safe without asking a stereo convolution to
+    // process an undersized buffer.
     for (auto& layerBuffer : layerBuffers)
-        layerBuffer.setSize (getTotalNumOutputChannels(), samplesPerBlock, false, false, true);
+        layerBuffer.setSize (2, samplesPerBlock, false, false, true);
 
     // Tone.Reverb is a normalised stereo convolution of two independent white
     // noise bursts, with a 10 ms predelay and a two-second exponential tail.
@@ -311,7 +316,8 @@ void ArmoryVSTAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 
 bool ArmoryVSTAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
+    const auto output = layouts.getMainOutputChannelSet();
+    return output == juce::AudioChannelSet::stereo() || output == juce::AudioChannelSet::mono();
 }
 
 void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
@@ -324,6 +330,11 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // host's output buffer: apart from being unsafe for downstream plug-ins,
     // one NaN would otherwise poison the analyser and all later bus samples.
     if (! std::isfinite (currentSampleRate) || currentSampleRate <= 0.0)
+        return;
+
+    // The DSP itself always runs in stereo. Reject only truly invalid layouts;
+    // a negotiated mono bus is mixed down at the final output stage below.
+    if (buffer.getNumChannels() < 1 || buffer.getNumChannels() > 2)
         return;
 
     for (int layer = 0; layer < numberOfLayers; ++layer)
@@ -382,12 +393,26 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                 layerMessages.addEvent (keyboardEvent.getMessage(), keyboardEvent.samplePosition);
         }
 
+        const auto hasNewNote = std::any_of (layerMessages.begin(), layerMessages.end(), [] (const auto metadata)
+        {
+            return metadata.getMessage().isNoteOn();
+        });
+        const auto hasActiveVoice = layerHasActiveVoices (layer);
+        auto& reverbTailSamples = reverbTailSamplesRemaining[layerIndex];
+
+        // Inactive layers previously still ran every filter and convolution
+        // on every audio block. Skip them only after their audible tail is
+        // exhausted, so the change has no effect on note or reverb timing.
+        if (! hasNewNote && ! hasActiveVoice && reverbTailSamples <= 0)
+            continue;
+
         auto& synthesiser = synthesisers[layerIndex];
         if (wobblePhaseResetRequests[layerIndex].exchange (false, std::memory_order_acq_rel))
             wobbleSlowPhases[layerIndex] = twoPi * wobblePhaseRandom.nextDouble();
 
         for (int index = 0; index < synthesiser.getNumVoices(); ++index)
-            if (auto* voice = dynamic_cast<ArmoryVoice*> (synthesiser.getVoice (index)))
+            if (auto* voice = dynamic_cast<ArmoryVoice*> (synthesiser.getVoice (index));
+                hasNewNote || voice->isVoiceActive())
             {
                 voice->setTone (metalParameters[layerIndex]->load(), wobbleParameters[layerIndex]->load(), transientParameters[layerIndex]->load(), durationParameters[layerIndex]->load(), speedParameters[layerIndex]->load(), airParameters[layerIndex]->load(), gainParameters[layerIndex]->load());
                 voice->setWobblePhases (wobbleSlowPhases[layerIndex], wobbleFastPhases[layerIndex]);
@@ -414,6 +439,7 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         constexpr auto autoFilterMinimum = 200.0f;
         const auto autoFilterMaximum = autoFilterMinimum * std::exp2 (2.6f);
 
+        constexpr auto autoFilterControlInterval = 16;
         for (int sample = 0; sample < layerBuffer.getNumSamples(); ++sample)
         {
             const auto sweep = static_cast<float> (0.5 + 0.5 * std::sin (motionPhase));
@@ -421,6 +447,14 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             // baseFrequency * 2^octaves (200 Hz and roughly 1213 Hz by default).
             const auto autoFilterFrequency = autoFilterMinimum + sweep * (autoFilterMaximum - autoFilterMinimum);
             const auto autoFilterQ = 1.0f + air * 5.0f;
+
+            // Coefficients are expensive to rebuild. Updating them at a
+            // 16-sample control rate remains far above the modulation band,
+            // while avoiding thousands of allocations/calculations per block.
+            if (sample % autoFilterControlInterval == 0)
+                for (int channel = 0; channel < layerBuffer.getNumChannels(); ++channel)
+                    airFilters[layerIndex][static_cast<size_t> (channel)].setCoefficients (
+                        juce::IIRCoefficients::makeBandPass (currentSampleRate, autoFilterFrequency, autoFilterQ));
 
             for (int channel = 0; channel < layerBuffer.getNumChannels(); ++channel)
             {
@@ -431,7 +465,6 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                 // updating them per sample preserves Tone's continuously
                 // moving AutoFilter frequency.
                 auto& airFilter = airFilters[layerIndex][static_cast<size_t> (channel)];
-                airFilter.setCoefficients (juce::IIRCoefficients::makeBandPass (currentSampleRate, autoFilterFrequency, autoFilterQ));
                 const auto filtered = airFilter.processSingleSampleRaw (dry);
                 const auto tremoloPhase = motionPhase + (channel == 0 ? leftPhaseOffset : rightPhaseOffset);
                 // Tone.Tremolo defaults to depth 0.5: its inverted LFO ranges from 0.25 to 0.75.
@@ -493,28 +526,50 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             lowPassFilter.processSamples (layerBuffer.getWritePointer (channel), layerBuffer.getNumSamples());
         }
 
-        auto& reverbDryBuffer = reverbDryBuffers[layerIndex];
-        if (reverbDryBuffer.getNumSamples() < layerBuffer.getNumSamples())
-            reverbDryBuffer.setSize (2, layerBuffer.getNumSamples(), false, false, true);
-        reverbDryBuffer.makeCopyOf (layerBuffer, true);
-
-        juce::dsp::AudioBlock<float> reverbBlock (layerBuffer);
-        juce::dsp::ProcessContextReplacing<float> reverbContext (reverbBlock);
-        reverbs[layerIndex].process (reverbContext);
-
         // Tone.Effect uses equal-power CrossFade rather than a linear dry/wet mix.
         const auto reverbWet = juce::jlimit (0.0f, 1.0f, reverbParameters[layerIndex]->load() / 100.0f);
-        const auto dryGain = std::cos (juce::MathConstants<float>::halfPi * reverbWet);
-        const auto wetGain = std::sin (juce::MathConstants<float>::halfPi * reverbWet);
-        for (int channel = 0; channel < layerBuffer.getNumChannels(); ++channel)
-            for (int sample = 0; sample < layerBuffer.getNumSamples(); ++sample)
-                layerBuffer.setSample (channel, sample, reverbDryBuffer.getSample (channel, sample) * dryGain
-                                                        + layerBuffer.getSample (channel, sample) * wetGain);
+        if (reverbWet > 0.0f)
+        {
+            auto& reverbDryBuffer = reverbDryBuffers[layerIndex];
+            if (reverbDryBuffer.getNumSamples() < layerBuffer.getNumSamples())
+                reverbDryBuffer.setSize (2, layerBuffer.getNumSamples(), false, false, true);
+            reverbDryBuffer.makeCopyOf (layerBuffer, true);
+
+            juce::dsp::AudioBlock<float> reverbBlock (layerBuffer);
+            juce::dsp::ProcessContextReplacing<float> reverbContext (reverbBlock);
+            reverbs[layerIndex].process (reverbContext);
+
+            const auto dryGain = std::cos (juce::MathConstants<float>::halfPi * reverbWet);
+            const auto wetGain = std::sin (juce::MathConstants<float>::halfPi * reverbWet);
+            for (int channel = 0; channel < layerBuffer.getNumChannels(); ++channel)
+                for (int sample = 0; sample < layerBuffer.getNumSamples(); ++sample)
+                    layerBuffer.setSample (channel, sample, reverbDryBuffer.getSample (channel, sample) * dryGain
+                                                            + layerBuffer.getSample (channel, sample) * wetGain);
+        }
+        else
+        {
+            reverbs[layerIndex].reset();
+            reverbTailSamples = 0;
+        }
+
+        if (layerHasActiveVoices (layer))
+            reverbTailSamples = static_cast<juce::int64> (std::ceil (currentSampleRate * 2.01));
+        else
+            reverbTailSamples = juce::jmax<juce::int64> (0, reverbTailSamples - layerBuffer.getNumSamples());
 
         layerBuffer.applyGain (juce::Decibels::decibelsToGain (gainParameters[layerIndex]->load()));
 
-        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-            buffer.addFrom (channel, 0, layerBuffer, channel, 0, buffer.getNumSamples());
+        if (buffer.getNumChannels() == 1)
+        {
+            for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+                buffer.addSample (0, sample, 0.5f * (layerBuffer.getSample (0, sample)
+                                                    + layerBuffer.getSample (1, sample)));
+        }
+        else
+        {
+            buffer.addFrom (0, 0, layerBuffer, 0, 0, buffer.getNumSamples());
+            buffer.addFrom (1, 0, layerBuffer, 1, 0, buffer.getNumSamples());
+        }
     }
 
     juce::dsp::AudioBlock<float> masterBlock (buffer);
@@ -546,6 +601,16 @@ void ArmoryVSTAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         }
         analyserWritePosition.store (writePosition, std::memory_order_release);
     }
+}
+
+bool ArmoryVSTAudioProcessor::layerHasActiveVoices (int layer) const
+{
+    const auto& synthesiser = synthesisers[static_cast<size_t> (layer)];
+    for (int index = 0; index < synthesiser.getNumVoices(); ++index)
+        if (const auto* voice = synthesiser.getVoice (index); voice != nullptr && voice->isVoiceActive())
+            return true;
+
+    return false;
 }
 
 void ArmoryVSTAudioProcessor::copyAnalyserSamples (std::array<float, 2048>& destination) const

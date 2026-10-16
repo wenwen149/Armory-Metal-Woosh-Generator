@@ -105,6 +105,7 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void transformMidiForLayer (int layer, const juce::MidiBuffer& input, juce::MidiBuffer& output);
+    bool layerHasActiveVoices (int layer) const;
     juce::String serialiseLockedNotes (int layer) const;
     void restoreLockedNotes (int layer, const juce::String& value);
 
@@ -131,6 +132,9 @@ private:
     std::array<juce::AudioBuffer<float>, numberOfLayers> reverbDryBuffers;
     std::array<std::array<std::atomic_bool, 128>, numberOfLayers> lockedNotes {};
     std::array<std::array<std::bitset<128>, 128>, numberOfLayers> activeTriggeredNotes {};
+    // Audio-thread-only countdowns. Reverb processing stops once a layer has
+    // no active voice and its fixed IR tail has fully decayed.
+    std::array<juce::int64, numberOfLayers> reverbTailSamplesRemaining {};
     std::array<bool, numberOfLayers> layerWasActive {};
     std::array<std::atomic_bool, numberOfLayers> wobblePhaseResetRequests {};
     std::array<double, numberOfLayers> wobbleSlowPhases {};
